@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Proiect_SPRC/Proiect_SPRC.csproj" />
+  <Project Path="TestProiectSPRCServer/TestProiectSPRCServer.csproj" Id="fe447502-a0dd-494d-a385-bdb5e8f9e138" />
+</Solution>
