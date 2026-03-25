@@ -9,7 +9,7 @@ namespace ClientTest
     {
         static void Main(string[] args)
         {
-            string serverIP = "127.0.0.1";
+            string serverIP = "10.66.2.179";
             int port = 5000;
             TcpClient client = null;
 
@@ -20,13 +20,13 @@ namespace ClientTest
             {
                 try
                 {
-                    Console.WriteLine($"Se încearcă conectarea la {serverIP}:{port}...");
+                    Console.WriteLine($"Se incearca conectarea la {serverIP}:{port}...");
                     client = new TcpClient();
                     client.Connect(serverIP, port);
                 }
                 catch (SocketException)
                 {
-                    Console.WriteLine("Serverul nu este pornit încă. Reîncerc în 2 secunde...");
+                    Console.WriteLine("Serverul nu este pornit inca. Reincerc in 2 secunde...");
                     Thread.Sleep(2000); // Așteaptă 2 secunde înainte de următoarea încercare
                 }
             }
@@ -51,7 +51,7 @@ namespace ClientTest
 
                     if (bytesRead == 0)
                     {
-                        Console.WriteLine("Serverul a închis conexiunea.");
+                        Console.WriteLine("Serverul a inchis conexiunea.");
                         break;
                     }
 
@@ -66,7 +66,7 @@ namespace ClientTest
             finally
             {
                 client.Close();
-                Console.WriteLine("Conexiune închisă. Apasă orice tastă pentru a ieși...");
+                Console.WriteLine("Conexiune inchisa. Apasa orice tasta pentru a iesi...");
                 Console.ReadKey();
             }
         }

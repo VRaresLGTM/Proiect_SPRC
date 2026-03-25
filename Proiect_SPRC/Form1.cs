@@ -8,7 +8,7 @@ namespace Proiect_SPRC
 {
     public partial class Form1 : Form
     {
-        String curSelect = "comenzi";
+        //String curSelect = "comenzi";
 
         public Form1()
         {
