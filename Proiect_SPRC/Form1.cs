@@ -21,20 +21,18 @@ namespace Proiect_SPRC
 
         TcpListener server;
         List<TcpClient> clients = new List<TcpClient>();
-        bool running = false;
 
         void StartServer()
         {
-            running = true;
-            Invoke((MethodInvoker)(() =>
-            {
-                labelServerStatus.Text = "Status Server: ON  ";
-                jurnalTextBox.AppendText("\nSe deschide portul pentru joc (5000)...");
-            }));
-            server = new TcpListener(IPAddress.Any, 5000);
-            server.Start();
             try
             {
+                Invoke((MethodInvoker)(() =>
+                {
+                    labelServerStatus.Text = "Status Server: ON  ";
+                    jurnalTextBox.AppendText("\nSe deschide portul pentru joc (5000)...");
+                }));
+                server = new TcpListener(IPAddress.Any, 5000);
+                server.Start();
                 while (true)
                 {
                     TcpClient client = server.AcceptTcpClient();
@@ -107,6 +105,8 @@ namespace Proiect_SPRC
             Thread serverThread = new Thread(StartServer);
             serverThread.IsBackground = true;
             serverThread.Start();
+            buttonStartServer.Enabled = false;
+            buttonStopServer.Enabled = true;
         }
 
         private void buttonStopServer_Click(object sender, EventArgs e)
@@ -127,7 +127,8 @@ namespace Proiect_SPRC
                 }));
             }
             server?.Stop();
-            running = false;
+            buttonStartServer.Enabled = true;
+            buttonStopServer.Enabled = false;
         }
 
         private void labelJurnalServer_Click(object sender, EventArgs e)

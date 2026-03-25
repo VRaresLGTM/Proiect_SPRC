@@ -11,7 +11,7 @@ namespace ClientTest
         {
             string serverIP = "10.66.2.179";
             int port = 5000;
-            TcpClient client = null;
+            TcpClient? client = null;
 
             Console.WriteLine("--- Client TCP pornit ---");
 

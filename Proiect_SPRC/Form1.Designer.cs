@@ -158,6 +158,7 @@
             // 
             // buttonStopServer
             // 
+            buttonStopServer.Enabled = false;
             buttonStopServer.Location = new Point(93, 12);
             buttonStopServer.Name = "buttonStopServer";
             buttonStopServer.Size = new Size(75, 23);
