@@ -164,10 +164,5 @@ namespace Proiect_SPRC
             buttonStartServer.Enabled = true;
             buttonStopServer.Enabled = false;
         }
-
-        private void labelJurnalServer_Click(object sender, EventArgs e)
-        {
-
-        }
     }
 }
