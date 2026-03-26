@@ -29,7 +29,7 @@ namespace Proiect_SPRC
                 Invoke((MethodInvoker)(() =>
                 {
                     labelServerStatus.Text = "Status Server: ON  ";
-                    jurnalTextBox.AppendText("[SERVER] Se deschide portul pentru joc (5000)...");
+                    jurnalTextBox.AppendText("\n[SERVER] Se deschide portul pentru joc (5000)...");
                 }));
                 server = new TcpListener(IPAddress.Any, 5000);
                 server.Start();
@@ -47,7 +47,7 @@ namespace Proiect_SPRC
             {
                 Invoke((MethodInvoker)(() =>
                 {
-                    jurnalTextBox.AppendText("\n[SERVER] Serverul a fost oprit cu succes.\n");
+                    jurnalTextBox.AppendText("\n[SERVER] Serverul a fost oprit cu succes.");
                     labelServerStatus.Text = "Status Server: OFF ";
                 }));
             }
@@ -88,8 +88,10 @@ namespace Proiect_SPRC
                         jurnalTextBox.AppendText($"\n[SERVER] S-a primit urmatoarea informație:\n{msg}");
                     }));
 
-                    // Procesare comenzi
+                    // -- Procesare comenzi de la client --
                     string response = "\n[SERVER] Eroare - Comanda invalida";
+
+                    // Presupunem formatul "TIP_OPERATIUNE|COD_LOBBY"
                     string[] parts = msg.Split('|');
                     string command = parts[0].ToUpper();
                     string lobbyCode = parts.Length > 1 ? parts[1] : "";
@@ -125,7 +127,10 @@ namespace Proiect_SPRC
                 }
             }
             catch (Exception ex){
-                Invoke((MethodInvoker)(() => jurnalTextBox.AppendText($"\n[SERVER] Eroare comunicare client: {ex.Message}")));
+                if (buttonStartServer.Enabled == false)
+                {
+                    Invoke((MethodInvoker)(() => jurnalTextBox.AppendText($"\n[SERVER] Client deconectat: {ex.Message}")));
+                }
             }
 
             client.Close();
@@ -135,7 +140,7 @@ namespace Proiect_SPRC
         {
             Invoke((MethodInvoker)(() =>
             {
-                jurnalTextBox.AppendText("\n[SERVER] Se pornește serverul...");
+                jurnalTextBox.AppendText("[SERVER] Se pornește serverul...");
             }));
             Thread serverThread = new Thread(StartServer);
             serverThread.IsBackground = true;

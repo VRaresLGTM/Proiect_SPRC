@@ -70,7 +70,6 @@
             labelJurnalServer.Size = new Size(76, 15);
             labelJurnalServer.TabIndex = 6;
             labelJurnalServer.Text = "Jurnal Server:";
-            labelJurnalServer.Click += labelJurnalServer_Click;
             // 
             // statusStrip
             // 
