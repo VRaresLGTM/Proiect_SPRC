@@ -10,7 +10,7 @@ namespace ClientTest
         static void Main(string[] args)
         {
             string serverIP = "10.66.2.179";
-            //string serverIP = "127.0.0.1";
+            serverIP = "127.0.0.1";
             int port = 5000;
             TcpClient? client = null;
 
@@ -27,8 +27,8 @@ namespace ClientTest
                 }
                 catch (SocketException)
                 {
-                    Console.WriteLine("Serverul nu este pornit inca. Reincerc in 2 secunde...");
-                    Thread.Sleep(2000); // Așteaptă 2 secunde înainte de următoarea încercare
+                    Console.WriteLine("Serverul nu este pornit inca. Reincerc intr-o secunda...");
+                    Thread.Sleep(1000); // Așteaptă 2 secunde înainte de următoarea încercare
                 }
             }
 

@@ -29,7 +29,7 @@ namespace Proiect_SPRC
                 Invoke((MethodInvoker)(() =>
                 {
                     labelServerStatus.Text = "Status Server: ON  ";
-                    jurnalTextBox.AppendText("\nSe deschide portul pentru joc (5000)...");
+                    jurnalTextBox.AppendText("[SERVER] Se deschide portul pentru joc (5000)...");
                 }));
                 server = new TcpListener(IPAddress.Any, 5000);
                 server.Start();
@@ -47,7 +47,7 @@ namespace Proiect_SPRC
             {
                 Invoke((MethodInvoker)(() =>
                 {
-                    jurnalTextBox.AppendText("\nServerul a fost oprit cu succes.\n");
+                    jurnalTextBox.AppendText("\n[SERVER] Serverul a fost oprit cu succes.\n");
                     labelServerStatus.Text = "Status Server: OFF ";
                 }));
             }
@@ -55,7 +55,7 @@ namespace Proiect_SPRC
             {
                 Invoke((MethodInvoker)(() =>
                 {
-                    jurnalTextBox.AppendText($"\nEroare server: {ex.Message}\n");
+                    jurnalTextBox.AppendText($"\n[SERVER] Eroare server: {ex.Message}\n");
 
                 }));
             }
@@ -65,11 +65,15 @@ namespace Proiect_SPRC
         {
             Invoke((MethodInvoker)(() =>
             {
-                jurnalTextBox.AppendText("\nSe obțin informații din socket...");
+                jurnalTextBox.AppendText("\n[SERVER] Se obțin informații din socket...");
             }));
             NetworkStream stream = client.GetStream();
             byte[] buffer = new byte[1024];
-
+            // Aici citim buffer-ul si vedem ce comenzi am primit, si facem actiunea in corcondanta cu mesajul primit
+            // Daca se primeste apasarea butonului joaca cu modifier-ul de intrare in joc, atunci se foloseste codul primit pentru conectarea clientului la jocul deja pornit
+            // Daca se primeste apasarea butonului joaca cu modifier-ul de creearea cod, atunci se creeaza un nou lobby cu codul primit, se introduce in baza de date si se trimite codul clientului
+            //      - daca se apasa primeste acelasi lucru cu inchide lobby = true, atunci se inchide lobby-ul.
+            // Daca se primeste apasarea butonului joaca cu modifier-ul de urmarire joc, se foloseste codul primit pentru conectarea clientului la jocul cu acel cod drept spectator
             try
             {
                 while (true)
@@ -77,21 +81,52 @@ namespace Proiect_SPRC
                     int bytesRead = stream.Read(buffer, 0, buffer.Length);
                     if (bytesRead == 0) break;
 
-                    string msg = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    string msg = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
 
-                    // OPTIONAL: afișezi în UI
                     Invoke((MethodInvoker)(() =>
                     {
-                        jurnalTextBox.AppendText("\nS-a primit urmatoarea informație: \n");
-                        jurnalTextBox.AppendText(msg);
+                        jurnalTextBox.AppendText($"\n[SERVER] S-a primit urmatoarea informație:\n{msg}");
                     }));
 
-                    string response = "OK";
+                    // Procesare comenzi
+                    string response = "\n[SERVER] Eroare - Comanda invalida";
+                    string[] parts = msg.Split('|');
+                    string command = parts[0].ToUpper();
+                    string lobbyCode = parts.Length > 1 ? parts[1] : "";
+                    switch (command)
+                    {
+                        case "JOIN":
+                            //de implementat
+                            response = $"\n[SERVER] Ack - Conectat la jocul {lobbyCode} ca jucator.";
+                            break;
+                        case "CREATE":
+                            //de implementat
+                            response = $"\n[SERVER] Ack - Lobby {lobbyCode} creat cu succes.";
+                            break;
+                        case "CLOSE":
+                            //de implementat
+                            response = $"\n[SERVER] Ack - Lobby {lobbyCode} a fost inchis.";
+                            break;
+                        case "SPECTATE":
+                            //de implementat
+                            response = $"\n[SERVER] Ack - Urmaresti jocul {lobbyCode} ca spectator.";
+                            break;
+                        default:
+                            response = "\n[SERVER] Ack - Mesaj primit (fara comanda).";
+                            break;
+                    }
                     byte[] data = Encoding.UTF8.GetBytes(response);
                     stream.Write(data, 0, data.Length);
+
+                    Invoke((MethodInvoker)(() =>
+                    {
+                        jurnalTextBox.AppendText($"\n[SERVER] Raspuns trimis: {response}");
+                    }));
                 }
             }
-            catch { }
+            catch (Exception ex){
+                Invoke((MethodInvoker)(() => jurnalTextBox.AppendText($"\n[SERVER] Eroare comunicare client: {ex.Message}")));
+            }
 
             client.Close();
         }
@@ -100,7 +135,7 @@ namespace Proiect_SPRC
         {
             Invoke((MethodInvoker)(() =>
             {
-                jurnalTextBox.AppendText("\nSe pornește serverul...");
+                jurnalTextBox.AppendText("\n[SERVER] Se pornește serverul...");
             }));
             Thread serverThread = new Thread(StartServer);
             serverThread.IsBackground = true;
@@ -113,7 +148,7 @@ namespace Proiect_SPRC
         {
             Invoke((MethodInvoker)(() =>
             {
-                jurnalTextBox.AppendText("\nSe încearcă oprirea serverului...");
+                jurnalTextBox.AppendText("\n[SERVER] Se încearcă oprirea serverului...");
             }));
             foreach (var c in clients) { c.Close(); }
 
@@ -123,7 +158,7 @@ namespace Proiect_SPRC
             {
                 Invoke((MethodInvoker)(() =>
                 {
-                    jurnalTextBox.AppendText("\nServerul nu a putut fi oprit...");
+                    jurnalTextBox.AppendText("\n[SERVER] Serverul nu a putut fi oprit...");
                 }));
             }
             buttonStartServer.Enabled = true;
@@ -134,27 +169,5 @@ namespace Proiect_SPRC
         {
 
         }
-        /*
-        private void buttonTestSwap_Click(object sender, EventArgs e)
-        {
-            switch (curSelect)
-            {
-                case "comenzi":
-                    labelJurnalServer.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 0);
-                    labelCommand.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-                    labelJurnalServer.ForeColor = Color.Black;
-                    labelCommand.ForeColor = Color.Gray;
-                    curSelect = "jurnal";
-                    break;
-                case "jurnal":
-                    labelJurnalServer.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-                    labelCommand.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 0);
-                    labelJurnalServer.ForeColor = Color.Gray;
-                    labelCommand.ForeColor = Color.Black;
-                    curSelect = "comenzi";
-                    break;
-            }
-        }
-        */
     }
 }

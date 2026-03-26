@@ -30,7 +30,6 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             panel1 = new Panel();
-            labelSpace = new Label();
             labelJurnalServer = new Label();
             statusStrip = new StatusStrip();
             labelServerStatus = new ToolStripStatusLabel();
@@ -48,7 +47,6 @@
             // 
             // panel1
             // 
-            panel1.Controls.Add(labelSpace);
             panel1.Controls.Add(labelJurnalServer);
             panel1.Controls.Add(statusStrip);
             panel1.Controls.Add(jurnalTextBox);
@@ -59,23 +57,13 @@
             panel1.Dock = DockStyle.Fill;
             panel1.Location = new Point(0, 0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(800, 419);
+            panel1.Size = new Size(484, 261);
             panel1.TabIndex = 0;
-            // 
-            // labelSpace
-            // 
-            labelSpace.AutoSize = true;
-            labelSpace.BackColor = Color.Silver;
-            labelSpace.Location = new Point(86, 54);
-            labelSpace.Name = "labelSpace";
-            labelSpace.Size = new Size(358, 15);
-            labelSpace.TabIndex = 7;
-            labelSpace.Text = "                                                                                                                     ";
             // 
             // labelJurnalServer
             // 
             labelJurnalServer.AutoSize = true;
-            labelJurnalServer.BackColor = Color.Silver;
+            labelJurnalServer.BackColor = Color.Transparent;
             labelJurnalServer.ForeColor = Color.Black;
             labelJurnalServer.Location = new Point(14, 54);
             labelJurnalServer.Name = "labelJurnalServer";
@@ -87,9 +75,9 @@
             // statusStrip
             // 
             statusStrip.Items.AddRange(new ToolStripItem[] { labelServerStatus, labelProgress, toolStripProgressBar1, labelSeparator });
-            statusStrip.Location = new Point(0, 395);
+            statusStrip.Location = new Point(0, 237);
             statusStrip.Name = "statusStrip";
-            statusStrip.Size = new Size(800, 24);
+            statusStrip.Size = new Size(484, 24);
             statusStrip.TabIndex = 5;
             // 
             // labelServerStatus
@@ -125,10 +113,10 @@
             jurnalTextBox.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             jurnalTextBox.BackColor = Color.Silver;
             jurnalTextBox.BorderStyle = BorderStyle.FixedSingle;
-            jurnalTextBox.Location = new Point(12, 52);
+            jurnalTextBox.Location = new Point(14, 72);
             jurnalTextBox.Name = "jurnalTextBox";
-            jurnalTextBox.Size = new Size(776, 340);
-            jurnalTextBox.TabIndex = 4;
+            jurnalTextBox.Size = new Size(458, 162);
+            jurnalTextBox.TabIndex = 3;
             jurnalTextBox.Text = "";
             // 
             // textBox1
@@ -139,8 +127,8 @@
             textBox1.BackColor = Color.Silver;
             textBox1.Location = new Point(271, 13);
             textBox1.Name = "textBox1";
-            textBox1.Size = new Size(517, 23);
-            textBox1.TabIndex = 3;
+            textBox1.Size = new Size(201, 23);
+            textBox1.TabIndex = 2;
             // 
             // labelCommand
             // 
@@ -153,35 +141,37 @@
             labelCommand.Location = new Point(208, 16);
             labelCommand.Name = "labelCommand";
             labelCommand.Size = new Size(57, 15);
-            labelCommand.TabIndex = 2;
+            labelCommand.TabIndex = 0;
             labelCommand.Text = "Comenzi:";
             // 
             // buttonStopServer
             // 
+            buttonStopServer.BackColor = Color.Transparent;
             buttonStopServer.Enabled = false;
-            buttonStopServer.Location = new Point(93, 12);
+            buttonStopServer.Location = new Point(96, 12);
             buttonStopServer.Name = "buttonStopServer";
-            buttonStopServer.Size = new Size(75, 23);
+            buttonStopServer.Size = new Size(81, 24);
             buttonStopServer.TabIndex = 1;
             buttonStopServer.Text = "Stop Server";
-            buttonStopServer.UseVisualStyleBackColor = true;
+            buttonStopServer.UseVisualStyleBackColor = false;
             buttonStopServer.Click += buttonStopServer_Click;
             // 
             // buttonStartServer
             // 
+            buttonStartServer.BackColor = Color.Transparent;
             buttonStartServer.Location = new Point(12, 12);
             buttonStartServer.Name = "buttonStartServer";
-            buttonStartServer.Size = new Size(75, 23);
+            buttonStartServer.Size = new Size(78, 24);
             buttonStartServer.TabIndex = 0;
             buttonStartServer.Text = "Start Server";
-            buttonStartServer.UseVisualStyleBackColor = true;
+            buttonStartServer.UseVisualStyleBackColor = false;
             buttonStartServer.Click += buttonStartServer_Click;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 419);
+            ClientSize = new Size(484, 261);
             Controls.Add(panel1);
             Icon = (Icon)resources.GetObject("$this.Icon");
             MinimumSize = new Size(500, 300);
