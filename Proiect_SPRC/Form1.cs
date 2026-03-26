@@ -126,7 +126,6 @@ namespace Proiect_SPRC
                     jurnalTextBox.AppendText("\nServerul nu a putut fi oprit...");
                 }));
             }
-            server?.Stop();
             buttonStartServer.Enabled = true;
             buttonStopServer.Enabled = false;
         }
