@@ -30,6 +30,7 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ServerMenu));
             panel1 = new Panel();
+            buttonSendCommand = new Button();
             labelJurnalServer = new Label();
             statusStrip = new StatusStrip();
             labelServerStatus = new ToolStripStatusLabel();
@@ -37,7 +38,7 @@
             toolStripProgressBar1 = new ToolStripProgressBar();
             labelSeparator = new ToolStripStatusLabel();
             jurnalTextBox = new RichTextBox();
-            textBox1 = new TextBox();
+            textBoxCommand = new TextBox();
             labelCommand = new Label();
             buttonStopServer = new Button();
             buttonStartServer = new Button();
@@ -47,25 +48,38 @@
             // 
             // panel1
             // 
+            panel1.Controls.Add(buttonSendCommand);
             panel1.Controls.Add(labelJurnalServer);
             panel1.Controls.Add(statusStrip);
             panel1.Controls.Add(jurnalTextBox);
-            panel1.Controls.Add(textBox1);
+            panel1.Controls.Add(textBoxCommand);
             panel1.Controls.Add(labelCommand);
             panel1.Controls.Add(buttonStopServer);
             panel1.Controls.Add(buttonStartServer);
             panel1.Dock = DockStyle.Fill;
             panel1.Location = new Point(0, 0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(484, 261);
+            panel1.Size = new Size(484, 437);
             panel1.TabIndex = 0;
+            // 
+            // buttonSendCommand
+            // 
+            buttonSendCommand.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            buttonSendCommand.Location = new Point(419, 13);
+            buttonSendCommand.Name = "buttonSendCommand";
+            buttonSendCommand.Size = new Size(53, 23);
+            buttonSendCommand.TabIndex = 7;
+            buttonSendCommand.Text = "Trimite";
+            buttonSendCommand.UseVisualStyleBackColor = true;
+            buttonSendCommand.Click += buttonSendCommand_Click;
+            buttonSendCommand.KeyPress += textBoxCommand_KeyPress;
             // 
             // labelJurnalServer
             // 
             labelJurnalServer.AutoSize = true;
             labelJurnalServer.BackColor = Color.Transparent;
             labelJurnalServer.ForeColor = Color.Black;
-            labelJurnalServer.Location = new Point(14, 54);
+            labelJurnalServer.Location = new Point(14, 47);
             labelJurnalServer.Name = "labelJurnalServer";
             labelJurnalServer.Size = new Size(76, 15);
             labelJurnalServer.TabIndex = 6;
@@ -74,7 +88,7 @@
             // statusStrip
             // 
             statusStrip.Items.AddRange(new ToolStripItem[] { labelServerStatus, labelProgress, toolStripProgressBar1, labelSeparator });
-            statusStrip.Location = new Point(0, 237);
+            statusStrip.Location = new Point(0, 413);
             statusStrip.Name = "statusStrip";
             statusStrip.Size = new Size(484, 24);
             statusStrip.TabIndex = 5;
@@ -112,22 +126,23 @@
             jurnalTextBox.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             jurnalTextBox.BackColor = Color.Silver;
             jurnalTextBox.BorderStyle = BorderStyle.FixedSingle;
-            jurnalTextBox.Location = new Point(14, 72);
+            jurnalTextBox.Location = new Point(14, 65);
             jurnalTextBox.Name = "jurnalTextBox";
-            jurnalTextBox.Size = new Size(458, 162);
+            jurnalTextBox.Size = new Size(458, 345);
             jurnalTextBox.TabIndex = 3;
             jurnalTextBox.Text = "";
             // 
-            // textBox1
+            // textBoxCommand
             // 
-            textBox1.AccessibleDescription = "Introdu comenzi care sa fie executate de server";
-            textBox1.AccessibleName = "Câmp Comenzi";
-            textBox1.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            textBox1.BackColor = Color.Silver;
-            textBox1.Location = new Point(271, 13);
-            textBox1.Name = "textBox1";
-            textBox1.Size = new Size(201, 23);
-            textBox1.TabIndex = 2;
+            textBoxCommand.AccessibleDescription = "Introdu comenzi care sa fie executate de server";
+            textBoxCommand.AccessibleName = "Câmp Comenzi";
+            textBoxCommand.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            textBoxCommand.BackColor = Color.Silver;
+            textBoxCommand.Location = new Point(271, 13);
+            textBoxCommand.Name = "textBoxCommand";
+            textBoxCommand.Size = new Size(142, 23);
+            textBoxCommand.TabIndex = 2;
+            textBoxCommand.KeyPress += textBoxCommand_KeyPress;
             // 
             // labelCommand
             // 
@@ -166,15 +181,15 @@
             buttonStartServer.UseVisualStyleBackColor = false;
             buttonStartServer.Click += buttonStartServer_Click;
             // 
-            // Form1
+            // ServerMenu
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(484, 261);
+            ClientSize = new Size(484, 437);
             Controls.Add(panel1);
             Icon = (Icon)resources.GetObject("$this.Icon");
             MinimumSize = new Size(500, 300);
-            Name = "Form1";
+            Name = "ServerMenu";
             Text = "Server Șah";
             panel1.ResumeLayout(false);
             panel1.PerformLayout();
@@ -191,12 +206,13 @@
         private Button buttonStartServer;
         private StatusStrip statusStrip;
         private RichTextBox jurnalTextBox;
-        private TextBox textBox1;
+        private TextBox textBoxCommand;
         private ToolStripStatusLabel labelServerStatus;
         private ToolStripStatusLabel labelProgress;
         private ToolStripProgressBar toolStripProgressBar1;
         private ToolStripStatusLabel labelSeparator;
         private Label labelJurnalServer;
         private Label labelSpace;
+        private Button buttonSendCommand;
     }
 }

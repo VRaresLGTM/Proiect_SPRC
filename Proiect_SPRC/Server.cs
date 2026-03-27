@@ -73,9 +73,8 @@ namespace Proiect_SPRC
                     Log($"[SERVER] S-a primit: {msg}");
 
                     string response = ProcessCommand(msg);
-                    byte[] data = Encoding.UTF8.GetBytes(response);
-                    stream.Write(data, 0, data.Length);
-                    Log($"[SERVER] Raspuns trimis: {response}");
+                    Log($"[SERVER] S-a trimis ({response})");
+                    SendMessage(client, response);
                 }
             }
             catch (Exception ex)
@@ -88,13 +87,17 @@ namespace Proiect_SPRC
                 lock (_clients) { _clients.Remove(client); }
             }
         }
-
-        private string ProcessCommand(string msg)
+        public void ProcessServerCommand(string msg)
+        {
+            Log(ProcessCommand(msg));
+        }
+        protected string ProcessCommand(string msg)
         {
             // Presupunem formatul "TIP_OPERATIUNE|COD_LOBBY"
             string[] parts = msg.Split('|');
             string command = parts[0].ToUpper();
             string lobbyCode = parts.Length > 1 ? parts[1] : "";
+            Log(command);
             // Aici citim buffer-ul si vedem ce comenzi am primit, si facem actiunea in corcondanta cu mesajul primit
             // Daca se primeste apasarea butonului joaca cu modifier-ul de intrare in joc, atunci se foloseste codul primit pentru conectarea clientului la jocul deja pornit
             // Daca se primeste apasarea butonului joaca cu modifier-ul de creearea cod, atunci se creeaza un nou lobby cu codul primit, se introduce in baza de date si se trimite codul clientului
@@ -114,6 +117,8 @@ namespace Proiect_SPRC
                 case "SPECTATE":
                     //de implementat
                     return $"Ack: Urmaresti {lobbyCode}";
+                case "TEST":
+                    return $"Ack: test primit";
                 default:
                     return "Eroare: Comanda invalida";
             }
@@ -131,6 +136,24 @@ namespace Proiect_SPRC
             OnServerStopped?.Invoke();
         }
 
+        public void SendMessage(TcpClient client, string msg)
+        {
+            try
+            {
+                if (client == null || !client.Connected) return;
+                NetworkStream stream = client.GetStream();
+                byte[] data = Encoding.UTF8.GetBytes(msg);
+
+                lock (stream)
+                {
+                    stream.Write(data, 0, data.Length);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"[SERVER] Eroare la trimiterea mesajului: {ex.Message}");
+            }
+        }
         private void Log(string message)
         {
             OnLogReceived?.Invoke(message);

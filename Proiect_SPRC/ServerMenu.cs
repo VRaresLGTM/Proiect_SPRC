@@ -15,12 +15,13 @@ namespace Proiect_SPRC
 
             gameServer.OnLogReceived += (msg) =>
             {
-                Invoke((MethodInvoker)(() => jurnalTextBox.AppendText("\r\n" + msg)));
+                Invoke((MethodInvoker)(() => jurnalTextBox.AppendText("\n" + msg)));
             };
 
             gameServer.OnServerStopped += () =>
             {
-                Invoke((MethodInvoker)(() => {
+                Invoke((MethodInvoker)(() =>
+                {
                     labelServerStatus.Text = "Status Server: OFF";
                     buttonStartServer.Enabled = true;
                     buttonStopServer.Enabled = false;
@@ -39,6 +40,18 @@ namespace Proiect_SPRC
         private void buttonStopServer_Click(object sender, EventArgs e)
         {
             gameServer.Stop();
+        }
+        private void buttonSendCommand_Click(object sender, EventArgs e)
+        {
+            gameServer.ProcessServerCommand(textBoxCommand.Text);
+        }
+
+        private void textBoxCommand_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if(e.KeyChar == '\r')
+            {
+                gameServer.ProcessServerCommand(textBoxCommand.Text);
+            }
         }
     }
 }
