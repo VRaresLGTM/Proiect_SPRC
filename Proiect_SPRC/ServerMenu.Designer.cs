@@ -1,6 +1,6 @@
 ﻿namespace Proiect_SPRC
 {
-    partial class Form1
+    partial class ServerMenu
     {
         /// <summary>
         ///  Required designer variable.
@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ServerMenu));
             panel1 = new Panel();
             labelJurnalServer = new Label();
             statusStrip = new StatusStrip();
@@ -176,7 +176,6 @@
             MinimumSize = new Size(500, 300);
             Name = "Form1";
             Text = "Server Șah";
-            Load += Form1_Load;
             panel1.ResumeLayout(false);
             panel1.PerformLayout();
             statusStrip.ResumeLayout(false);
