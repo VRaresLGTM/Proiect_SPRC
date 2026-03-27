@@ -10,13 +10,15 @@ namespace Proiect_SPRC
 {
     class Server
     {
-        private TcpListener _server;
+        private TcpListener? _server;
         private List<TcpClient> _clients = new List<TcpClient>();
         private bool _isRunning = false;
 
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public event Action<string> OnLogReceived;
         public event Action OnServerStopped;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         public void Start(int port)
         {
