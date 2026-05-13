@@ -44,6 +44,7 @@ namespace Proiect_SPRC
         private void buttonSendCommand_Click(object sender, EventArgs e)
         {
             gameServer.ProcessServerCommand(textBoxCommand.Text);
+            textBoxCommand.Text = "";
         }
 
         private void textBoxCommand_KeyPress(object sender, KeyPressEventArgs e)
@@ -52,6 +53,7 @@ namespace Proiect_SPRC
             {
                 gameServer.ProcessServerCommand(textBoxCommand.Text);
             }
+            textBoxCommand.Text = "";
         }
 
         private void textBoxCommand_TextChanged(object sender, EventArgs e)
