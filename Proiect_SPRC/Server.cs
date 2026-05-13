@@ -74,6 +74,48 @@ namespace Proiect_SPRC
         {
             try
             {
+                // 1. Verificăm dacă lobby-ul există deja în memorie pentru a evita duplicatele
+                lock (_meciuriActive)
+                {
+                    if (_meciuriActive.Any(m => m.lobbyCode == lobbyCode))
+                    {
+                        return "ERR|Cod lobby deja existent";
+                    }
+                }
+
+                using (var conn = new SQLiteConnection(_connectionString))
+                {
+                    conn.Open();
+                    string sql = "INSERT INTO Lobby (lobbyCode, DataCreare, Status) VALUES (@cod, @data, @status)";
+                    using (var cmd = new SQLiteCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@cod", lobbyCode);
+                        cmd.Parameters.AddWithValue("@data", DateTime.Now);
+                        cmd.Parameters.AddWithValue("@status", "Asteptare");
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
+                lock (_meciuriActive)
+                {
+                    // IMPORTANT: Constructorul MeciSah trebuie să asigneze creatorul ca JucatorAlb
+                    MeciSah nouMeci = new MeciSah(lobbyCode, creator);
+                    _meciuriActive.Add(nouMeci);
+                }
+
+                // Creatorul primește confirmarea. El este DEJA înregistrat ca ALB.
+                return $"ACK_CREATE|{lobbyCode}|Esti ALB, asteapta adversar...";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EROARE SQL]: {ex.Message}");
+                return $"ERR|Eroare la crearea lobby-ului: {ex.Message}";
+            }
+        }
+        /*private string HandleCreateLobby(TcpClient creator, string lobbyCode)
+        {
+            try
+            {
                 using (var conn = new SQLiteConnection(_connectionString))
                 {
                     conn.Open();
@@ -103,8 +145,52 @@ namespace Proiect_SPRC
                 Console.WriteLine($"[EROARE SQL]: {ex.Message}");
                 return $"ACK: Error occured: {ex.Message}";
             }
-        }
+        }*/
         private string HandleJoinLobby(TcpClient jucator, string lobbyCode)
+        {
+            lock (_meciuriActive)
+            {
+                var meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode);
+
+                if (meci == null) return "ERR|Lobby inexistent";
+
+                // 2. VERIFICARE CRITICĂ: Verificăm dacă jucătorul este deja în lobby
+                if (meci.JucatorAlb == jucator)
+                {
+                    return $"WAITING|{lobbyCode}|Esti deja ALB, se asteapta adversar...";
+                }
+                if (meci.JucatorNegru == jucator)
+                {
+                    return $"WAITING|{lobbyCode}|Esti deja NEGRU, meciul incepe...";
+                }
+
+                // 3. Logică de atribuire a locurilor libere
+                if (meci.JucatorAlb == null)
+                {
+                    meci.JucatorAlb = jucator;
+                    Log($"[LOBBY] {lobbyCode}: ALB a intrat.");
+                    return $"WAITING|{lobbyCode}|Ai intrat ca ALB, se asteapta adversar...";
+                }
+                else if (meci.JucatorNegru == null)
+                {
+                    meci.JucatorNegru = jucator;
+                    Log($"[LOBBY] {lobbyCode}: NEGRU a intrat.");
+
+                    // Notificăm și jucătorul ALB că a venit un adversar (opțional, depinde de SendMessage)
+                    SendMessage(meci.JucatorAlb, "OPPONENT_JOINED|Negru a intrat în meci!");
+
+                    StartMatchCountdown(lobbyCode);
+                    return $"WAITING|{lobbyCode}|Ai intrat ca NEGRU, meciul incepe curand...";
+                }
+                else
+                {
+                    // Dacă ambele locuri sunt ocupate, intră ca spectator
+                    meci.Spectatori.Add(jucator);
+                    return $"JOIN_SUCCESS|{meci.StareTabla}|Ai intrat ca spectator.";
+                }
+            }
+        }
+        /*private string HandleJoinLobby(TcpClient jucator, string lobbyCode)
         {
             lock (_meciuriActive)
             {
@@ -131,7 +217,7 @@ namespace Proiect_SPRC
                     return $"WAITING|{lobbyCode}|Ai intrat ca spectator.";
                 }
             }
-        }
+        }*/
 
         private void StartMatchCountdown(string lobbyCode)
         {
