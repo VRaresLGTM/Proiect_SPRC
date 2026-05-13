@@ -34,7 +34,7 @@ namespace Proiect_SPRC
             buttonStartServer.Enabled = false;
             buttonStopServer.Enabled = true;
             labelServerStatus.Text = "Status Server: ON ";
-            gameServer.Start(5000);
+            gameServer.Start(int.Parse(textBoxPort.Text));
         }
 
         private void buttonStopServer_Click(object sender, EventArgs e)
@@ -48,10 +48,20 @@ namespace Proiect_SPRC
 
         private void textBoxCommand_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if(e.KeyChar == '\r')
+            if (e.KeyChar == '\r')
             {
                 gameServer.ProcessServerCommand(textBoxCommand.Text);
             }
+        }
+
+        private void textBoxCommand_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

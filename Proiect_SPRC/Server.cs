@@ -1,21 +1,23 @@
 ﻿using Microsoft.VisualBasic.Logging;
 using Proiect_SPRC;
+using Proiect_SPRC.Piese;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.Data.SqlTypes;
 using System.Drawing.Text;
 using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using static System.Net.Mime.MediaTypeNames;
+using System.Xml;
 
 namespace Proiect_SPRC
 {
     class Server
     {
-        private TcpListener _server;
+        private TcpListener _server = default!;
         private List<TcpClient> _clients = new List<TcpClient>();
         private bool _isRunning = false;
         private string _dbFile = "database.db";
@@ -40,6 +42,10 @@ namespace Proiect_SPRC
             Thread t = new Thread(ListenForClients);
             t.IsBackground = true;
             t.Start();
+
+            Thread healthCheck = new Thread(KeepAlive);
+            healthCheck.IsBackground = true;
+            healthCheck.Start();
         }
         private void ListenForClients()
         {
@@ -67,40 +73,38 @@ namespace Proiect_SPRC
         private string HandleCreateLobby(TcpClient creator, string preferintaCuloare)
         {
             string lobbyCode = GenerareCod(6);
-            /*
-            string culoareAtribuita = preferintaCuloare.ToUpper();
 
-            if(string.IsNullOrEmpty(culoareAtribuita))
-            {
-                culoareAtribuita = (new Random().Next(2) == 0) ? "ALB" : "NEGRU";
-            }
-            */
-            #pragma warning disable CS0168 // Variable is declared but never used
             try
             {
                 using (var conn = new SQLiteConnection(_connectionString))
                 {
                     conn.Open();
-                    string sql = $"INSERT INTO Lobby (lobbyCode, DataCreare, Status) VALUES (@cod, {DateTime.Now}, 'Asteptare')";
+                    // Folosim parametri (@cod, @data, @status) în loc de concatenare
+                    string sql = "INSERT INTO Lobby (lobbyCode, DataCreare, Status) VALUES (@cod, @data, @status)";
+
                     using (var cmd = new SQLiteCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@cod", lobbyCode);
+                        cmd.Parameters.AddWithValue("@data", DateTime.Now); // SQLite va converti corect data
+                        cmd.Parameters.AddWithValue("@status", "Asteptare");
+
                         cmd.ExecuteNonQuery();
                     }
                 }
+
                 lock (_meciuriActive)
                 {
                     MeciSah nouMeci = new MeciSah(lobbyCode, creator);
-
                     _meciuriActive.Add(nouMeci);
                 }
+
                 return $"ACK_CREATE|{lobbyCode}";
             }
             catch (Exception ex)
             {
-                return $"Ack: Lobby creat cu codul {lobbyCode}";
+                Console.WriteLine($"[EROARE SQL]: {ex.Message}");
+                return $"ACK: Error occured: {ex.Message}";
             }
-        #pragma warning restore CS0168 // Variable is declared but never used
         }
         private string HandleJoinLobby(TcpClient jucator, string lobbyCode)
         {
@@ -122,7 +126,12 @@ namespace Proiect_SPRC
                     StartMatchCountdown(meci);
                     return $"WAITING|{lobbyCode}|Ai intrat ca NEGRU, meciul incepe in 3 secunde...";
                 }
-                else return "ERR|Lobby deja plin";
+                else
+                {
+                    meci.Spectatori.Add(jucator);
+                    SendMessage(jucator, $"JOIN_SUCCESS|{meci.StareTabla}");
+                    return $"WAITING|{lobbyCode}|Ai intrat ca spectator.";
+                }
             }
         }
 
@@ -200,9 +209,53 @@ namespace Proiect_SPRC
             }
             finally
             {
-                client.Close();
-                lock (_clients) { _clients.Remove(client); }
+                CleanupClient(client);
             }
+        }
+        private void KeepAlive()
+        {
+            while (_isRunning)
+            {
+                Thread.Sleep(5000);
+                lock (_clients)
+                {
+                    foreach (var client in _clients.ToList())
+                    {
+                        if (!client.Connected)
+                        {
+                            CleanupClient(client);
+                        }
+                    }
+                }
+            }
+        }
+        private void CleanupClient(TcpClient client)
+        {
+            Log("[SERVER] Se curăță resursele pentru un client deconectat.");
+
+            lock (_meciuriActive)
+            {
+                // Găsim meciul în care era acest client
+                var meci = _meciuriActive.FirstOrDefault(m => m.JucatorAlb == client || m.JucatorNegru == client);
+
+                if (meci != null)
+                {
+                    // Anunțăm celălalt jucător
+                    TcpClient adversar = (meci.JucatorAlb == client) ? meci.JucatorNegru : meci.JucatorAlb;
+
+                    if (adversar != null && adversar.Connected)
+                    {
+                        SendMessage(adversar, "OPPONENT_DISCONNECTED|Adversarul tău a părăsit jocul.");
+                    }
+
+                    // Putem alege să închidem meciul sau să îl ștergem din listă
+                    _meciuriActive.Remove(meci);
+                    UpdateLobbyStatus(meci.lobbyCode, "Abandonat");
+                }
+            }
+
+            lock (_clients) { _clients.Remove(client); }
+            client.Close();
         }
         public void ProcessServerCommand(string msg)
         {
@@ -216,7 +269,7 @@ namespace Proiect_SPRC
             string command = parts[0].ToUpper();
             string lobbyCode = parts.Length > 1 ? parts[1] : "";
             Log(command);
-            // Aici citim buffer-ul si vedem ce comenzi am primit, si facem actiunea in corcondanta cu mesajul primit
+            // Aici citim buffer-ul si vedem ce comenzi am primit, si facem actiunea in concordanta cu mesajul primit
             // Daca se primeste apasarea butonului joaca cu modifier-ul de intrare in joc, atunci se foloseste codul primit pentru conectarea clientului la jocul deja pornit
             // Daca se primeste apasarea butonului joaca cu modifier-ul de creearea cod, atunci se creeaza un nou lobby cu codul primit, se introduce in baza de date si se trimite codul clientului
             //      - daca se apasa primeste acelasi lucru cu inchide lobby = true, atunci se inchide lobby-ul.
@@ -230,7 +283,6 @@ namespace Proiect_SPRC
                     return HandleCreateLobby(sender, preferinta);
                 //JOIN|{lobbyCode} -> intra in lobby-ul de joc cu codul primit daca sunt mai putin de 2 jucatori
                 case "JOIN":
-                    //de implementat
                     return HandleJoinLobby(sender, lobbyCode);
                 //START|{lobbyCode} -> incepe jocul cu codul primit la primirea comenzii
                 case "START":
@@ -241,20 +293,173 @@ namespace Proiect_SPRC
                     //de implementat
                     return $"ACK|Lobby-ul cu codul {lobbyCode} a fost inchis";
                 //SPECTATE|{lobbyCode} -> jucatorul intra ca spectator in jocul cu codul de la primirea comenzii
-                case "SPECTATE":
-                    //de implementat
-                    return $"ACK|Urmaresti {lobbyCode}";
-                //UPDATE|{optiuni} -> se actualizeaza starea jocului cu optiunile primite (tabla curenta de sah, 
+                case "SPECTATE":        
+                    return HandleJoinLobby(sender, lobbyCode);
+                //UPDATE|lobbyCode|vectorTabla -> se actualizeaza starea jocului cu optiunile primite
                 case "UPDATE":
-                    //de implementat
-                    return $"ACK|Actualizat stare {lobbyCode}";
+                    string stareTabla = ValidareMutare(lobbyCode, parts[2]);
+                    if (stareTabla != "")
+                    {
+                        BroadcastToLobby(lobbyCode, $"UPDATE_SUCCESS|{stareTabla}");
+                        return $"ACK|Actualizat stare {lobbyCode}";
+                    }
+                    return $"ERR|Mutare invalida conform regulilor";
+                case "CHAT":
+                    if(parts.Length < 3) return "ERR|Mesaj Gol";
+                    BroadcastChat(lobbyCode, parts[2], false, sender);
+                    return "";
+                case "CHAT_PRIVATE":
+                    if(parts.Length < 3) return "ERR|Mesaj Privat Gol";
+                    BroadcastChat(lobbyCode, parts[2], true, sender);
+                    return "";
                 case "TEST":
                     return $"ACK|Test primit";
                 default:
                     return "ERR|Comanda Invalida";
             }
         }
+        private void BroadcastToSender(string lobbyCode, string mesaj, TcpClient sender) {
+            {
+                lock (_meciuriActive)
+                {
+                    var meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode);
+                    if (meci == null) return;
+                    if (sender != null && sender.Connected)
+                        SendMessage(sender, mesaj);
+                }
+            }
+        }
+        private void BroadcastToLobby(string lobbyCode, string mesaj)
+        {
+            lock (_meciuriActive)
+            {
+                var meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode);
+                if (meci == null) return;
 
+                // Trimitem la Jucătorul Alb
+                if (meci.JucatorAlb != null && meci.JucatorAlb.Connected)
+                    SendMessage(meci.JucatorAlb, mesaj);
+
+                // Trimitem la Jucătorul Negru
+                if (meci.JucatorNegru != null && meci.JucatorNegru.Connected)
+                    SendMessage(meci.JucatorNegru, mesaj);
+
+                // Trimitem tuturor spectatorilor
+                foreach (var spectator in meci.Spectatori)
+                {
+                    if (spectator != null && spectator.Connected)
+                        SendMessage(spectator, mesaj);
+                }
+            }
+        }
+        private void BroadcastChat(string lobbyCode, string mesaj, bool isPrivate, TcpClient sender)
+        {
+            lock (_meciuriActive)
+            {
+                var meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode);
+                if (meci == null) return;
+
+                string prefix = isPrivate ? "CHAT_PRIVATE_MESSAGE" : "CHAT_MSG";
+                string expeditor = (sender == meci.JucatorAlb) ? "Alb" : (sender == meci.JucatorNegru) ? "Negru" : "Spectator";
+                string mesajFinal = $"{prefix}|{expeditor}|{mesaj}";
+                
+                SendMessage(meci.JucatorAlb, mesajFinal);
+                SendMessage(meci.JucatorNegru, mesajFinal);
+
+                if (!isPrivate)
+                {
+                    foreach (var spectator in meci.Spectatori)
+                    {
+                        SendMessage(spectator, mesajFinal);
+                    }
+                }
+            }
+        }
+        private int[,] ConvertesteInMatrice(string vectorString)
+        {
+            int[,] matrice = new int[8, 8];
+            string[] valori = vectorString.Split(','); // Sau orice separator folosești
+
+            for (int i = 0; i < 64; i++)
+            {
+                matrice[i / 8, i % 8] = int.Parse(valori[i]);
+            }
+            return matrice;
+        }
+        private bool ExecutaValidarePiesa(int startX, int startY, int stopX, int stopY, int[,] tabla)
+        {
+            int piesaId = tabla[startX, startY];
+            PiesaSah? piesa = null;
+
+            // Mapare ID la Clase (Exemplu: 1=Pion, 2=Cal, 3=Nebun, 4=Turn, 5=Regina, 6=Rege)
+            // piesaId pozitiv = Alb, piesaId negativ = Negru
+            switch (Math.Abs(piesaId))
+            {
+                case 1: piesa = new Pion(); break;
+                case 2: piesa = new Cal(); break;
+                case 3: piesa = new Nebun(); break;
+                case 4: piesa = new Turn(); break;
+                case 5: piesa = new Regina(); break;
+                case 6: piesa = new Rege(); break;
+            }
+
+            if (piesa == null) return false;
+
+            piesa.Culoare = piesaId > 0 ? "Alb" : "Negru";
+
+            // Verificăm dacă nu cumva jucătorul încearcă să-și mănânce propria piesă
+            if (tabla[stopX, stopY] != 0)
+            {
+                bool tintaEsteAlba = tabla[stopX, stopY] > 0;
+                if ((piesa.Culoare == "Alb" && tintaEsteAlba) || (piesa.Culoare == "Negru" && !tintaEsteAlba))
+                    return false;
+            }
+
+            return piesa.EsteMutareValida(startX, startY, stopX, stopY, tabla);
+        }
+        private string ValidareMutare(string lobbyCode, string stareNouaVector)
+        {
+            lock (_meciuriActive)
+            {
+                var meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode);
+                if (meci == null) return "";
+
+                // 1. Transformăm string-ul/vectorul primit în matrice int[8,8]
+                int[,] tablaNoua = ConvertesteInMatrice(stareNouaVector);
+                int[,] tablaVeche = ConvertesteInMatrice(meci.StareTabla); // Presupunem că StareTabla reține ultima stare validă
+
+                int startX = -1, startY = -1, stopX = -1, stopY = -1;
+
+                // 2. Detectăm ce piesă s-a mutat și unde (Detectare diferențe)
+                for (int i = 0; i < 8; i++)
+                {
+                    for (int j = 0; j < 8; j++)
+                    {
+                        if (tablaVeche[i, j] != 0 && tablaNoua[i, j] == 0)
+                        {
+                            startX = i; startY = j;
+                        }
+                        else if (tablaNoua[i, j] != tablaVeche[i, j])
+                        {
+                            stopX = i; stopY = j;
+                        }
+                    }
+                }
+
+                // Dacă nu s-a detectat o mutare clară, respingem
+                if (startX == -1 || stopX == -1) return meci.StareTabla;
+
+                // 3. Executăm validarea propriu-zisă
+                if (ExecutaValidarePiesa(startX, startY, stopX, stopY, tablaVeche))
+                {
+                    // Dacă e validă, actualizăm starea meciului
+                    meci.StareTabla = stareNouaVector;
+                    return meci.StareTabla;
+                }
+
+                return meci.StareTabla;
+            }
+        }
         public void InitializareDB()
         {
             if (!File.Exists(_dbFile)) SQLiteConnection.CreateFile(_dbFile);
@@ -271,14 +476,31 @@ namespace Proiect_SPRC
 
         public void Stop()
         {
+            Log("[SERVER] Se oprește serverul...");
             _isRunning = false;
             lock (_clients)
             {
-                foreach (var c in _clients) c.Close();
+                foreach (var c in _clients.ToList())
+                {
+                    try
+                    {
+                        if (c.Connected)
+                        {
+                            SendMessage(c, "SERVER_STOPPED|Serverul se închide.");
+                            c.GetStream().Close();
+                            c.Close();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"[SERVER] Eroare stop: {ex.Message}");
+                    }
+                }
                 _clients.Clear();
             }
             _server?.Stop();
             OnServerStopped?.Invoke();
+            Log("[SERVER] Server-ul s-a oprit complet.");
         }
 
         public void SendMessage(TcpClient client, string msg)

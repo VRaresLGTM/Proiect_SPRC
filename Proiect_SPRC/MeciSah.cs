@@ -10,7 +10,7 @@ namespace Proiect_SPRC
     {
         public string lobbyCode { get; set; }
         public TcpClient JucatorAlb { get; set; }
-        public TcpClient JucatorNegru { get; set; }
+        public TcpClient? JucatorNegru { get; set; }
         public List<TcpClient> Spectatori { get; set; } = new List<TcpClient>();
         public string StareTabla { get; set; }
         public bool EsteActiv { get; set; }
@@ -21,6 +21,7 @@ namespace Proiect_SPRC
             JucatorAlb = creator;
             lobbyCode = cod;
             EsteActiv = true;
+            StareTabla = "4,2,3,5,6,3,2,4,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-4,-2,-3,-5,-6,-3,-2,-4";
         }
     }
 }

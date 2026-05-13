@@ -30,6 +30,7 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ServerMenu));
             panel1 = new Panel();
+            textBoxPort = new TextBox();
             buttonSendCommand = new Button();
             labelJurnalServer = new Label();
             statusStrip = new StatusStrip();
@@ -42,12 +43,15 @@
             labelCommand = new Label();
             buttonStopServer = new Button();
             buttonStartServer = new Button();
+            labelPort = new Label();
             panel1.SuspendLayout();
             statusStrip.SuspendLayout();
             SuspendLayout();
             // 
             // panel1
             // 
+            panel1.Controls.Add(labelPort);
+            panel1.Controls.Add(textBoxPort);
             panel1.Controls.Add(buttonSendCommand);
             panel1.Controls.Add(labelJurnalServer);
             panel1.Controls.Add(statusStrip);
@@ -59,13 +63,26 @@
             panel1.Dock = DockStyle.Fill;
             panel1.Location = new Point(0, 0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(484, 437);
+            panel1.Size = new Size(568, 437);
             panel1.TabIndex = 0;
+            // 
+            // textBoxPort
+            // 
+            textBoxPort.AccessibleDescription = "Introdu comenzi care sa fie executate de server";
+            textBoxPort.AccessibleName = "Câmp Comenzi";
+            textBoxPort.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            textBoxPort.BackColor = Color.Silver;
+            textBoxPort.Location = new Point(230, 13);
+            textBoxPort.Name = "textBoxPort";
+            textBoxPort.Size = new Size(45, 23);
+            textBoxPort.TabIndex = 8;
+            textBoxPort.Text = "5000";
+            textBoxPort.TextChanged += textBox1_TextChanged;
             // 
             // buttonSendCommand
             // 
             buttonSendCommand.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            buttonSendCommand.Location = new Point(419, 13);
+            buttonSendCommand.Location = new Point(503, 13);
             buttonSendCommand.Name = "buttonSendCommand";
             buttonSendCommand.Size = new Size(53, 23);
             buttonSendCommand.TabIndex = 7;
@@ -90,7 +107,7 @@
             statusStrip.Items.AddRange(new ToolStripItem[] { labelServerStatus, labelProgress, toolStripProgressBar1, labelSeparator });
             statusStrip.Location = new Point(0, 413);
             statusStrip.Name = "statusStrip";
-            statusStrip.Size = new Size(484, 24);
+            statusStrip.Size = new Size(568, 24);
             statusStrip.TabIndex = 5;
             // 
             // labelServerStatus
@@ -128,7 +145,7 @@
             jurnalTextBox.BorderStyle = BorderStyle.FixedSingle;
             jurnalTextBox.Location = new Point(14, 65);
             jurnalTextBox.Name = "jurnalTextBox";
-            jurnalTextBox.Size = new Size(458, 345);
+            jurnalTextBox.Size = new Size(542, 345);
             jurnalTextBox.TabIndex = 3;
             jurnalTextBox.Text = "";
             // 
@@ -138,10 +155,11 @@
             textBoxCommand.AccessibleName = "Câmp Comenzi";
             textBoxCommand.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             textBoxCommand.BackColor = Color.Silver;
-            textBoxCommand.Location = new Point(271, 13);
+            textBoxCommand.Location = new Point(355, 13);
             textBoxCommand.Name = "textBoxCommand";
             textBoxCommand.Size = new Size(142, 23);
             textBoxCommand.TabIndex = 2;
+            textBoxCommand.TextChanged += textBoxCommand_TextChanged;
             textBoxCommand.KeyPress += textBoxCommand_KeyPress;
             // 
             // labelCommand
@@ -152,7 +170,7 @@
             labelCommand.AutoSize = true;
             labelCommand.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             labelCommand.ForeColor = Color.Black;
-            labelCommand.Location = new Point(208, 16);
+            labelCommand.Location = new Point(292, 16);
             labelCommand.Name = "labelCommand";
             labelCommand.Size = new Size(57, 15);
             labelCommand.TabIndex = 0;
@@ -181,11 +199,20 @@
             buttonStartServer.UseVisualStyleBackColor = false;
             buttonStartServer.Click += buttonStartServer_Click;
             // 
+            // labelPort
+            // 
+            labelPort.AutoSize = true;
+            labelPort.Location = new Point(192, 16);
+            labelPort.Name = "labelPort";
+            labelPort.Size = new Size(32, 15);
+            labelPort.TabIndex = 9;
+            labelPort.Text = "Port:";
+            // 
             // ServerMenu
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(484, 437);
+            ClientSize = new Size(568, 437);
             Controls.Add(panel1);
             Icon = (Icon)resources.GetObject("$this.Icon");
             MinimumSize = new Size(500, 300);
@@ -214,5 +241,7 @@
         private Label labelJurnalServer;
         private Label labelSpace;
         private Button buttonSendCommand;
+        private TextBox textBoxPort;
+        private Label labelPort;
     }
 }
