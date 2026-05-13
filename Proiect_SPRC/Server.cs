@@ -70,7 +70,7 @@ namespace Proiect_SPRC
                 Log($"[SERVER] Eroare server: {ex.Message}");
             }
         }
-        private string HandleCreateLobby(TcpClient creator, string preferintaCuloare, string lobbyCode)
+        private string HandleCreateLobby(TcpClient creator, string lobbyCode)
         {
             try
             {
@@ -317,8 +317,7 @@ namespace Proiect_SPRC
             {
                 // CREATE|{lobbyCode} -> creeaza un nou joc cu codul primit
                 case "CREATE":
-                    string preferinta = parts.Length > 1 ? parts[2] : "";
-                    return HandleCreateLobby(sender, preferinta, lobbyCode);
+                    return HandleCreateLobby(sender, lobbyCode);
                 //JOIN|{lobbyCode} -> intra in lobby-ul de joc cu codul primit daca sunt mai putin de 2 jucatori
                 case "JOIN":
                     return HandleJoinLobby(sender, lobbyCode);
