@@ -292,7 +292,7 @@ namespace Proiect_SPRC
                 using(var conn = new SQLiteConnection(_connectionString))
                 {
                     conn.Open();
-                    string sql = "UPDATE Lobby SET Status = @status WHERE codlobby = @cod";
+                    string sql = "UPDATE Lobby SET Status = @status WHERE lobbyCode = @cod";
                     using (var cmd = new SQLiteCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@status", status);
