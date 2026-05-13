@@ -70,10 +70,8 @@ namespace Proiect_SPRC
                 Log($"[SERVER] Eroare server: {ex.Message}");
             }
         }
-        private string HandleCreateLobby(TcpClient creator, string preferintaCuloare)
+        private string HandleCreateLobby(TcpClient creator, string preferintaCuloare, string lobbyCode)
         {
-            string lobbyCode = GenerareCod(6);
-
             try
             {
                 using (var conn = new SQLiteConnection(_connectionString))
@@ -123,7 +121,7 @@ namespace Proiect_SPRC
                 {
                     meci.JucatorNegru = jucator;
                     Log($"[LOBBY] {lobbyCode}: Al doilea jucător (NEGRU) a intrat.");
-                    StartMatchCountdown(meci);
+                    StartMatchCountdown(lobbyCode);
                     return $"WAITING|{lobbyCode}|Ai intrat ca NEGRU, meciul incepe in 3 secunde...";
                 }
                 else
@@ -135,9 +133,50 @@ namespace Proiect_SPRC
             }
         }
 
-        private void StartMatchCountdown(MeciSah meci)
+        private void StartMatchCountdown(string lobbyCode)
         {
             Thread countdownThread = new Thread(() =>
+            {
+                MeciSah meci = null;
+
+                // Căutăm meciul în lista de meciuri active sub un lock
+                lock (_meciuriActive)
+                {
+                    meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode);
+                }
+
+                if (meci == null)
+                {
+                    Log($"[MECI] {lobbyCode}: Eroare - Meciul nu a fost găsit pentru countdown.");
+                    return;
+                }
+
+                Log($"[MECI] {meci.lobbyCode}: Incepe numaratoarea inversa (3s)...");
+                SendMessage(meci.JucatorAlb, "COUNTDOWN|3");
+                SendMessage(meci.JucatorNegru, "COUNTDOWN|3");
+
+                Thread.Sleep(3000);
+
+                // Verificăm din nou dacă meciul mai există și jucătorii sunt prezenți
+                // S-ar putea ca cineva să fi ieșit în cele 3 secunde de Sleep
+                if (meci.JucatorAlb != null && meci.JucatorAlb.Connected &&
+                    meci.JucatorNegru != null && meci.JucatorNegru.Connected)
+                {
+                    Log($"[MECI] {meci.lobbyCode}: START!");
+                    SendMessage(meci.JucatorAlb, "MATCH_START|ALB");
+                    SendMessage(meci.JucatorNegru, "MATCH_START|NEGRU");
+
+                    UpdateLobbyStatus(meci.lobbyCode, "InDesfasurare");
+                }
+                else
+                {
+                    Log($"[MECI] {meci.lobbyCode}: Start anulat. Un jucator s-a deconectat.");
+                }
+            });
+
+            countdownThread.IsBackground = true; // Recomandat pentru a nu bloca închiderea serverului
+            countdownThread.Start();
+            /*Thread countdownThread = new Thread(() =>
             {
                 Log($"[MECI] {meci.lobbyCode}: Incepe numaratoarea inversa (3s)...");
                 SendMessage(meci.JucatorAlb, "COUNTDOWN|3");
@@ -157,7 +196,7 @@ namespace Proiect_SPRC
                 {
                     Log($"[MECI] {meci.lobbyCode}: Start anulat. Un jucator s-a deconectat.");
                 }
-            });
+            });*/
         }
 
         private void UpdateLobbyStatus(string lobbyCode, string status)
@@ -278,19 +317,18 @@ namespace Proiect_SPRC
             {
                 // CREATE|{lobbyCode} -> creeaza un nou joc cu codul primit
                 case "CREATE":
-                    //de implementat
                     string preferinta = parts.Length > 1 ? parts[2] : "";
-                    return HandleCreateLobby(sender, preferinta);
+                    return HandleCreateLobby(sender, preferinta, lobbyCode);
                 //JOIN|{lobbyCode} -> intra in lobby-ul de joc cu codul primit daca sunt mai putin de 2 jucatori
                 case "JOIN":
                     return HandleJoinLobby(sender, lobbyCode);
                 //START|{lobbyCode} -> incepe jocul cu codul primit la primirea comenzii
                 case "START":
-                    //de implementat
-                    return $"ACK|A inceput jocul de sah {lobbyCode}";
-                //CLOSE|{lobbyCode} -> opreste jocul cu codul primit la primirea comenzii
+                    StartMatchCountdown(lobbyCode);
+                    return $"ACK|A pornit jocul de sah {lobbyCode}";
+                //CLOSE -> opreste jocul
                 case "CLOSE":
-                    //de implementat
+                    Stop();
                     return $"ACK|Lobby-ul cu codul {lobbyCode} a fost inchis";
                 //SPECTATE|{lobbyCode} -> jucatorul intra ca spectator in jocul cu codul de la primirea comenzii
                 case "SPECTATE":        
@@ -304,10 +342,12 @@ namespace Proiect_SPRC
                         return $"ACK|Actualizat stare {lobbyCode}";
                     }
                     return $"ERR|Mutare invalida conform regulilor";
+                //CHAT|lobbyCode|mesaj -> se transmite mesajul primit tuturor participantilor la jocul cu codul primit
                 case "CHAT":
                     if(parts.Length < 3) return "ERR|Mesaj Gol";
                     BroadcastChat(lobbyCode, parts[2], false, sender);
                     return "";
+                //CHAT_PRIVATE|lobbyCode|mesaj -> se transmite mesajul primit doar adversarului la jocul cu codul primit
                 case "CHAT_PRIVATE":
                     if(parts.Length < 3) return "ERR|Mesaj Privat Gol";
                     BroadcastChat(lobbyCode, parts[2], true, sender);
@@ -316,17 +356,6 @@ namespace Proiect_SPRC
                     return $"ACK|Test primit";
                 default:
                     return "ERR|Comanda Invalida";
-            }
-        }
-        private void BroadcastToSender(string lobbyCode, string mesaj, TcpClient sender) {
-            {
-                lock (_meciuriActive)
-                {
-                    var meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode);
-                    if (meci == null) return;
-                    if (sender != null && sender.Connected)
-                        SendMessage(sender, mesaj);
-                }
             }
         }
         private void BroadcastToLobby(string lobbyCode, string mesaj)
@@ -375,7 +404,7 @@ namespace Proiect_SPRC
                 }
             }
         }
-        private int[,] ConvertesteInMatrice(string vectorString)
+        public static int[,] ConvertesteInMatrice(string vectorString)
         {
             int[,] matrice = new int[8, 8];
             string[] valori = vectorString.Split(','); // Sau orice separator folosești
@@ -386,7 +415,7 @@ namespace Proiect_SPRC
             }
             return matrice;
         }
-        private bool ExecutaValidarePiesa(int startX, int startY, int stopX, int stopY, int[,] tabla)
+        public static bool ExecutaValidarePiesa(int startX, int startY, int stopX, int stopY, int[,] tabla)
         {
             int piesaId = tabla[startX, startY];
             PiesaSah? piesa = null;
@@ -405,11 +434,13 @@ namespace Proiect_SPRC
 
             if (piesa == null) return false;
 
+            //obtinere culoare jucator
             piesa.Culoare = piesaId > 0 ? "Alb" : "Negru";
 
             // Verificăm dacă nu cumva jucătorul încearcă să-și mănânce propria piesă
             if (tabla[stopX, stopY] != 0)
             {
+                //verificarea randului de mutare
                 bool tintaEsteAlba = tabla[stopX, stopY] > 0;
                 if ((piesa.Culoare == "Alb" && tintaEsteAlba) || (piesa.Culoare == "Negru" && !tintaEsteAlba))
                     return false;
@@ -452,6 +483,12 @@ namespace Proiect_SPRC
                 // 3. Executăm validarea propriu-zisă
                 if (ExecutaValidarePiesa(startX, startY, stopX, stopY, tablaVeche))
                 {
+                    string culoareJucator = (tablaVeche[startX, startY] > 0) ? "Alb" : "Negru";
+                    if (meci.ArFiInSahDupaMutare(startX, startY, stopX, stopY, culoareJucator))
+                    {
+                        return ""; // Mutare invalidă: regele rămâne/intră în șah - String gol !TREBUIE VERIFICAT
+                    }
+
                     // Dacă e validă, actualizăm starea meciului
                     meci.StareTabla = stareNouaVector;
                     return meci.StareTabla;

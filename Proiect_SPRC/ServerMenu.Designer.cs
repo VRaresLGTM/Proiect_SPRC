@@ -30,6 +30,7 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ServerMenu));
             panel1 = new Panel();
+            labelPort = new Label();
             textBoxPort = new TextBox();
             buttonSendCommand = new Button();
             labelJurnalServer = new Label();
@@ -43,7 +44,6 @@
             labelCommand = new Label();
             buttonStopServer = new Button();
             buttonStartServer = new Button();
-            labelPort = new Label();
             panel1.SuspendLayout();
             statusStrip.SuspendLayout();
             SuspendLayout();
@@ -66,11 +66,19 @@
             panel1.Size = new Size(568, 437);
             panel1.TabIndex = 0;
             // 
+            // labelPort
+            // 
+            labelPort.AutoSize = true;
+            labelPort.Location = new Point(192, 16);
+            labelPort.Name = "labelPort";
+            labelPort.Size = new Size(32, 15);
+            labelPort.TabIndex = 9;
+            labelPort.Text = "Port:";
+            // 
             // textBoxPort
             // 
             textBoxPort.AccessibleDescription = "Introdu comenzi care sa fie executate de server";
             textBoxPort.AccessibleName = "Câmp Comenzi";
-            textBoxPort.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             textBoxPort.BackColor = Color.Silver;
             textBoxPort.Location = new Point(230, 13);
             textBoxPort.Name = "textBoxPort";
@@ -198,15 +206,6 @@
             buttonStartServer.Text = "Start Server";
             buttonStartServer.UseVisualStyleBackColor = false;
             buttonStartServer.Click += buttonStartServer_Click;
-            // 
-            // labelPort
-            // 
-            labelPort.AutoSize = true;
-            labelPort.Location = new Point(192, 16);
-            labelPort.Name = "labelPort";
-            labelPort.Size = new Size(32, 15);
-            labelPort.TabIndex = 9;
-            labelPort.Text = "Port:";
             // 
             // ServerMenu
             // 

@@ -10,7 +10,7 @@ namespace ClientTest
         static void Main(string[] args)
         {
             string serverIP = "10.66.2.179";
-            serverIP = "127.0.0.1";
+            //serverIP = "127.0.0.1";
             int port = 5000;
             TcpClient? client = null;
 

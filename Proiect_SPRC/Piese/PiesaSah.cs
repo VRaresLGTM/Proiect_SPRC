@@ -6,7 +6,7 @@ namespace Proiect_SPRC.Piese
 {
     public abstract class PiesaSah
     {
-        public string? Culoare { get; set; }
+        public string Culoare { get; set; }
 
         public abstract bool EsteMutareValida(int startX, int startY, int stopX, int stopY, int[,] tabla);
         protected bool EsteDrumLiber(int startX, int startY, int stopX, int stopY, int[,] tabla)
