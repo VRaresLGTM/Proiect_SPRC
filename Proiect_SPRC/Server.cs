@@ -323,7 +323,7 @@ namespace Proiect_SPRC
                     string msg = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
                     Log($"[SERVER] S-a primit: {msg}");
 
-                    string response = ProcessCommand(msg);
+                    string response = ProcessCommand(msg, client);
                     Log($"[SERVER] S-a trimis ({response})");
                     SendMessage(client, response);
                 }
