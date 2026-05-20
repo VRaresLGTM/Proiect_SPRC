@@ -36,6 +36,7 @@ namespace Proiect_SPRC
             _isRunning = true;
             _server = new TcpListener(IPAddress.Any, port);
             _server.Start();
+            CurataBazaDeDateLaPornire();
 
             Log($"[SERVER] Se deschide portul {port}...");
 
@@ -361,23 +362,45 @@ namespace Proiect_SPRC
             lock (_meciuriActive)
             {
                 // Găsim meciul în care era acest client
-                var meci = _meciuriActive.FirstOrDefault(m => m.JucatorAlb == client || m.JucatorNegru == client);
+                var meci = _meciuriActive.FirstOrDefault(m =>
+            m.JucatorAlb == client ||
+            m.JucatorNegru == client ||
+            m.Spectatori.Contains(client));
 
                 if (meci != null)
                 {
-                    // Anunțăm celălalt jucător
-                    TcpClient adversar = (meci.JucatorAlb == client) ? meci.JucatorNegru : meci.JucatorAlb;
-
-                    if (adversar != null && adversar.Connected)
+                    // 2. Eliminăm clientul din rolul corespunzător
+                    if (meci.JucatorAlb == client)
                     {
-                        SendMessage(adversar, "OPPONENT_DISCONNECTED|Adversarul tău a părăsit jocul.");
+                        meci.JucatorAlb = null;
+                        Log($"[LOBBY] {meci.lobbyCode}: Jucătorul ALB a părăsit meciul.");
+                        // Opțional: Poți trimite un mesaj jucătorului NEGRU dacă el încă mai este acolo
+                        if (meci.JucatorNegru != null) SendMessage(meci.JucatorNegru, "OPPONENT_LEFT|Adversarul ALB s-a deconectat.");
+                    }
+                    else if (meci.JucatorNegru == client)
+                    {
+                        meci.JucatorNegru = null;
+                        Log($"[LOBBY] {meci.lobbyCode}: Jucătorul NEGRU a părăsit meciul.");
+                        if (meci.JucatorAlb != null) SendMessage(meci.JucatorAlb, "OPPONENT_LEFT|Adversarul NEGRU s-a deconectat.");
+                    }
+                    else
+                    {
+                        meci.Spectatori.Remove(client);
+                        Log($"[LOBBY] {meci.lobbyCode}: Un spectator a plecat.");
                     }
 
-                    // Putem alege să închidem meciul sau să îl ștergem din listă
-                    _meciuriActive.Remove(meci);
-                    UpdateLobbyStatus(meci.lobbyCode, "Abandonat");
+                    // 3. Condiția critică: Verificăm dacă lobby-ul a rămas complet gol
+                    if (meci.JucatorAlb == null && meci.JucatorNegru == null && meci.Spectatori.Count == 0)
+                    {
+                        Log($"[LOBBY] {meci.lobbyCode} este complet gol. Se elimină din memorie și DB...");
+
+                        // Ștergem din baza de date
+                        StergeLobbyDinBD(meci.lobbyCode);
+                        UpdateLobbyStatus(meci.lobbyCode, "Inchis");
+                        // Eliminăm meciul din lista de meciuri active din RAM
+                        _meciuriActive.Remove(meci);
+                    }
                 }
-            }
 
             lock (_clients) { _clients.Remove(client); }
             client.Close();
@@ -641,6 +664,49 @@ namespace Proiect_SPRC
             catch (Exception ex)
             {
                 Log($"[SERVER] Eroare la trimiterea mesajului: {ex.Message}");
+            }
+        }
+        private void CurataBazaDeDateLaPornire()
+        {
+            try
+            {
+                using (var conn = new SQLiteConnection(_connectionString))
+                {
+                    conn.Open();
+                    // Șterge toate jocurile rămase blocate din sesiunile anterioare
+                    string sql = "DELETE FROM Lobby";
+                    using (var cmd = new SQLiteCommand(sql, conn))
+                    {
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                Log("[SERVER] Baza de date a fost curățată pentru o nouă sesiune.");
+            }
+            catch (Exception ex)
+            {
+                Log($"[EROARE INITIALIZARE DB]: {ex.Message}");
+            }
+        }
+        private void StergeLobbyDinBD(string lobbyCode)
+        {
+            try
+            {    
+                using (var conn = new SQLiteConnection(_connectionString))
+                {
+                    conn.Open();
+                    string sql = "DELETE FROM Lobby WHERE lobbyCode = @cod";
+
+                    using (var cmd = new SQLiteCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@cod", lobbyCode);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                Log($"[SERVER] Baza de date a fost curățată pentru lobby-ul: {lobbyCode}");
+            }
+            catch (Exception ex)
+            {
+                Log($"[EROARE SQL Ștergere Lobby]: {ex.Message}");
             }
         }
         private string GenerareCod(int nr)
