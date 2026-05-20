@@ -431,6 +431,9 @@ namespace Proiect_SPRC
                 case "JOIN":
                     return HandleJoinLobby(sender, lobbyCode);
                 //START|{lobbyCode} -> incepe jocul cu codul primit la primirea comenzii
+                case "DELETE":
+                    StergeLobbyDinBD(lobbyCode);
+                    return $"ACK|Lobby-ul cu codul {lobbyCode} a fost șters";
                 case "START":
                     StartMatchCountdown(lobbyCode);
                     return $"ACK|A pornit jocul de sah {lobbyCode}";
