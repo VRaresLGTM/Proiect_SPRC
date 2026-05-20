@@ -32,7 +32,7 @@ namespace ClientTest
                 }
             }
 
-            Console.WriteLine("\n✅ Conectat cu succes la server!");
+            Console.WriteLine("\nConectat cu succes la server!");
 
             try
             {
