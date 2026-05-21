@@ -63,11 +63,11 @@ namespace Proiect_SPRC
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.Interrupted)
             {
-                Log("[SERVER] Serverul a fost oprit cu succes.");
+                Log("[SERVER_LISTENER] Serverul a fost oprit cu succes.");
             }
             catch (Exception ex)
             {
-                Log($"[SERVER] Eroare server: {ex.Message}");
+                Log($"[SERVER_LISTENER] Eroare server: {ex.Message}");
             }
         }
         private void IncarcaLobbyuriDinDB()
@@ -493,7 +493,7 @@ namespace Proiect_SPRC
                     return $"ACK|A pornit jocul de sah {lobbyCode}";
                 //CLOSE -> opreste jocul
                 case "CLOSE":
-                    Stop();
+                    StopMatch(lobbyCode);
                     return $"ACK|Lobby-ul cu codul {lobbyCode} a fost inchis";
                 //SPECTATE|{lobbyCode} -> jucatorul intra ca spectator in jocul cu codul de la primirea comenzii
                 case "SPECTATE":        
@@ -599,8 +599,7 @@ namespace Proiect_SPRC
                 using (var cmd = new SQLiteCommand(sql, conn)) cmd.ExecuteNonQuery();
             }
         }
-
-        public void Stop()
+        public void StopServer()
         {
             Log("[SERVER] Se oprește serverul...");
             _isRunning = false;
@@ -624,8 +623,64 @@ namespace Proiect_SPRC
                 }
                 _clients.Clear();
             }
+            _server?.Stop();
             OnServerStopped?.Invoke();
             Log("[SERVER] Server-ul s-a oprit complet.");
+        }
+        public void StopMatch(string lobbyCode)
+        {
+            Log($"[SERVER] Se oprește doar meciul: {lobbyCode}...");
+
+            lock (_meciuriActive)
+            {
+                // 1. Găsim meciul specific în lista de meciuri active din RAM
+                var meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode);
+
+                if (meci != null)
+                {
+                    // 2. Colectăm doar clienții care fac parte din acest meci (Alb, Negru și Spectatori)
+                    List<TcpClient> clientiMeci = new List<TcpClient>();
+                    if (meci.JucatorAlb != null) clientiMeci.Add(meci.JucatorAlb);
+                    if (meci.JucatorNegru != null) clientiMeci.Add(meci.JucatorNegru);
+                    if (meci.Spectatori != null) clientiMeci.AddRange(meci.Spectatori);
+
+                    // 3. Notificăm și închidem conexiunea DOAR pentru acești clienți
+                    foreach (var c in clientiMeci)
+                    {
+                        try
+                        {
+                            if (c.Connected)
+                            {
+                                // Trimitem un mesaj specific către client ca să știe că meciul s-a terminat
+                                SendMessage(c, "MATCH_FORCE_STOPPED|Meciul a fost oprit de server.");
+
+                                // Închidem fluxul și conexiunea pentru acest client
+                                c.GetStream().Close();
+                                c.Close();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"[SERVER] Eroare la oprirea unui client din meciul {lobbyCode}: {ex.Message}");
+                        }
+
+                        // Îi scoatem și din lista globală de clienți activi ai serverului
+                        lock (_clients)
+                        {
+                            _clients.Remove(c);
+                        }
+                    }
+
+                    // 4. Curățăm baza de date SQLite pentru acest cod ca să poată fi refolosit
+                    StergeLobbyDinBD(lobbyCode);
+
+                    Log($"[SERVER] Meciul {lobbyCode} a fost oprit cu succes. Serverul rulează în continuare.");
+                }
+                else
+                {
+                    Log($"[SERVER] Meciul cu codul {lobbyCode} nu a fost găsit sau este deja închis.");
+                }
+            }
         }
 
         public void SendMessage(TcpClient client, string msg)

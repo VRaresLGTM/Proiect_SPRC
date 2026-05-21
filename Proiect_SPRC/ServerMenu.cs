@@ -39,7 +39,7 @@ namespace Proiect_SPRC
 
         private void buttonStopServer_Click(object sender, EventArgs e)
         {
-            gameServer.Stop();
+            gameServer.StopServer();
         }
         private void buttonSendCommand_Click(object sender, EventArgs e)
         {
