@@ -1,16 +1,7 @@
-﻿using Microsoft.VisualBasic.Logging;
-using Proiect_SPRC;
-using System;
-using System.Collections.Generic;
-using System.Data.SQLite;
-using System.Data.SqlTypes;
-using System.Drawing.Text;
-using System.Linq.Expressions;
+﻿using System.Data.SQLite;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
-using System.Xml;
 
 namespace Proiect_SPRC
 {
@@ -536,10 +527,11 @@ namespace Proiect_SPRC
                         return "";
                     }
                     return $"ERR|Mutare invalida conform regulilor";
-                //CHAT|lobbyCode|mesaj -> se transmite mesajul primit tuturor participantilor la jocul cu codul primit
+                //CHAT|lobbyCode|emitator|mesaj -> se transmite mesajul primit tuturor participantilor la jocul cu codul primit
                 case "CHAT":
-                    if(parts.Length < 3) return "ERR|Mesaj Gol";
-                    BroadcastChat(lobbyCode, parts[2], false, sender);
+                    if(parts.Length < 4) return "ERR|Mesaj Gol";
+                    string emitatorsimesaj = parts[2]+": " + parts[3];
+                    BroadcastChat(lobbyCode, emitatorsimesaj, false, sender);
                     return "";
                 //CHAT_PRIVATE|lobbyCode|mesaj -> se transmite mesajul primit doar adversarului la jocul cu codul primit
                 case "CHAT_PRIVATE":
@@ -580,8 +572,11 @@ namespace Proiect_SPRC
             lock (_meciuriActive)
             {
                 var meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode);
-                if (meci == null) return;
-
+                if (meci == null)
+                {
+                    Log("Meci este null");
+                    return;
+                }
                 string prefix = isPrivate ? "CHAT_PRIVATE_MESSAGE" : "CHAT_MSG";
                 string expeditor = (sender == meci.JucatorAlb) ? "Alb" : (sender == meci.JucatorNegru) ? "Negru" : "Spectator";
                 string mesajFinal = $"{prefix}|{expeditor}|{mesaj}";
