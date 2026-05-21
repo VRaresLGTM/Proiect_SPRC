@@ -390,72 +390,100 @@ namespace Proiect_SPRC
                 CleanupClient(client);
             }
         }
+        
         private void KeepAlive()
         {
             while (_isRunning)
             {
                 Thread.Sleep(5000);
+                List<TcpClient> deCuratat = new List<TcpClient>();
+
+                // Doar colectăm clienții deconectați sub lock, fără să apelăm alte metode grele
                 lock (_clients)
                 {
-                    foreach (var client in _clients.ToList())
+                    foreach (var client in _clients)
                     {
                         if (!client.Connected)
                         {
-                            CleanupClient(client);
+                            deCuratat.Add(client);
                         }
                     }
+                }
+
+                // Apelăm CleanupClient în AFARA lock-ului pentru a elimina riscul de Deadlock
+                foreach (var client in deCuratat)
+                {
+                    CleanupClient(client);
                 }
             }
         }
         private void CleanupClient(TcpClient client)
         {
-            Log("[SERVER] Se curăță resursele pentru un client deconectat.");
-
-            lock (_meciuriActive)
+            try
             {
-                // Găsim meciul în care era acest client
-                var meci = _meciuriActive.FirstOrDefault(m =>
-            m.JucatorAlb == client ||
-            m.JucatorNegru == client ||
-            m.Spectatori.Contains(client));
+                Log("[SERVER] Se curăță resursele pentru un client deconectat.");
 
-                if (meci != null)
+                lock (_meciuriActive)
                 {
-                    // 2. Eliminăm clientul din rolul corespunzător
-                    if (meci.JucatorAlb == client)
-                    {
-                        meci.JucatorAlb = null;
-                        Log($"[LOBBY] {meci.lobbyCode}: Jucătorul ALB a părăsit meciul.");
-                        // Opțional: Poți trimite un mesaj jucătorului NEGRU dacă el încă mai este acolo
-                        if (meci.JucatorNegru != null) SendMessage(meci.JucatorNegru, "OPPONENT_LEFT|Adversarul ALB s-a deconectat.");
-                    }
-                    else if (meci.JucatorNegru == client)
-                    {
-                        meci.JucatorNegru = null;
-                        Log($"[LOBBY] {meci.lobbyCode}: Jucătorul NEGRU a părăsit meciul.");
-                        if (meci.JucatorAlb != null) SendMessage(meci.JucatorAlb, "OPPONENT_LEFT|Adversarul NEGRU s-a deconectat.");
-                    }
-                    else
-                    {
-                        meci.Spectatori.Remove(client);
-                        Log($"[LOBBY] {meci.lobbyCode}: Un spectator a plecat.");
-                    }
+                    // Găsim meciul în care era acest client (verificăm sigur dacă Spectatori nu e null)
+                    var meci = _meciuriActive.FirstOrDefault(m =>
+                        m.JucatorAlb == client ||
+                        m.JucatorNegru == client ||
+                        (m.Spectatori != null && m.Spectatori.Contains(client)));
 
-                    // 3. Condiția critică: Verificăm dacă lobby-ul a rămas complet gol
-                    if (meci.JucatorAlb == null && meci.JucatorNegru == null && meci.Spectatori.Count == 0)
+                    if (meci != null)
                     {
-                        Log($"[LOBBY] {meci.lobbyCode} este complet gol. Se elimină din memorie și DB...");
+                        // 2. Eliminăm clientul din rolul corespunzător
+                        if (meci.JucatorAlb == client)
+                        {
+                            meci.JucatorAlb = null;
+                            Log($"[LOBBY] {meci.lobbyCode}: Jucătorul ALB a părăsit meciul.");
 
-                        // Ștergem din baza de date
-                        StergeLobbyDinBD(meci.lobbyCode);
-                        UpdateLobbyStatus(meci.lobbyCode, "Inchis");
-                        // Eliminăm meciul din lista de meciuri active din RAM
-                        _meciuriActive.Remove(meci);
+                            if (meci.JucatorNegru != null && meci.JucatorNegru.Connected)
+                                SendMessage(meci.JucatorNegru, "OPPONENT_LEFT|Adversarul ALB s-a deconectat.");
+                        }
+                        else if (meci.JucatorNegru == client)
+                        {
+                            meci.JucatorNegru = null;
+                            Log($"[LOBBY] {meci.lobbyCode}: Jucătorul NEGRU a părăsit meciul.");
+
+                            if (meci.JucatorAlb != null && meci.JucatorAlb.Connected)
+                                SendMessage(meci.JucatorAlb, "OPPONENT_LEFT|Adversarul NEGRU s-a deconectat.");
+                        }
+                        else
+                        {
+                            meci.Spectatori?.Remove(client);
+                            Log($"[LOBBY] {meci.lobbyCode}: Un spectator a plecat.");
+                        }
+
+                        // 3. Condiția critică: Verificăm dacă lobby-ul a rămas complet gol
+                        int spectatoriCount = meci.Spectatori?.Count ?? 0;
+                        if (meci.JucatorAlb == null && meci.JucatorNegru == null && spectatoriCount == 0)
+                        {
+                            Log($"[LOBBY] {meci.lobbyCode} este complet gol. Se elimină din memorie și DB...");
+
+                            // Ștergem din baza de date
+                            StergeLobbyDinBD(meci.lobbyCode);
+                            UpdateLobbyStatus(meci.lobbyCode, "Inchis");
+
+                            // Eliminăm meciul din lista de meciuri active din RAM
+                            _meciuriActive.Remove(meci);
+                        }
                     }
                 }
 
-                lock (_clients) { _clients.Remove(client); }
+                // MUTAT AFARĂ din lock-ul de meciuri pentru a preveni Deadlock-ul
+                lock (_clients)
+                {
+                    _clients.Remove(client);
+                }
+
                 client.Close();
+            }
+            catch (Exception ex)
+            {
+                // Protecție finală: Serverul nu va mai crapa niciodată de la deconectări
+                Log($"[SERVER EROARE CLEANUP] A apărut o eroare la curățare: {ex.Message}");
             }
         }
 
