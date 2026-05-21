@@ -1,6 +1,5 @@
 ﻿using Microsoft.VisualBasic.Logging;
 using Proiect_SPRC;
-using Proiect_SPRC.Piese;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
@@ -36,7 +35,7 @@ namespace Proiect_SPRC
             _isRunning = true;
             _server = new TcpListener(IPAddress.Any, port);
             _server.Start();
-            CurataBazaDeDateLaPornire();
+            IncarcaLobbyuriDinDB();
 
             Log($"[SERVER] Se deschide portul {port}...");
 
@@ -69,6 +68,59 @@ namespace Proiect_SPRC
             catch (Exception ex)
             {
                 Log($"[SERVER] Eroare server: {ex.Message}");
+            }
+        }
+        private void IncarcaLobbyuriDinDB()
+        {
+            lock (_meciuriActive)
+            {
+                _meciuriActive.Clear();
+                using (var conn = new SQLiteConnection(_connectionString))
+                {
+                    conn.Open();
+                    string sql = "SELECT lobbyCode FROM Lobby WHERE Status = 'Asteptare'";
+
+                    using (var cmd = new SQLiteCommand(sql, conn))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while(reader.Read())
+                        {
+                            string cod = reader.GetString(0);
+                            MeciSah meci = new MeciSah(cod, null);
+                            _meciuriActive.Add(meci);
+                        }
+                    }
+                }
+            }
+        }
+        private string DeleteLobbyDinDB(string lobbyCode)
+        {
+            try
+            {
+                using (var conn = new SQLiteConnection(_connectionString))
+                {
+                    conn.Open();
+                    string sql = "DELETE FROM Lobby WHERE lobbyCode = @cod";
+                    using (var cmd = new SQLiteCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@cod", lobbyCode);
+                        int rows = cmd.ExecuteNonQuery();
+                        if (rows == 0)
+                            return "ERR|Lobby inexistent in DB";
+                    }
+                }
+                lock (_meciuriActive)
+                {
+                    var meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode); 
+                    if (meci != null) 
+                        _meciuriActive.Remove(meci);
+                }
+                return $"ACK|Lobby {lobbyCode} sters";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EROARE SQL]: {ex.Message}");
+                return $"ERR|Eroare la ștergerea lobby-ului: {ex.Message}";
             }
         }
         private string HandleCreateLobby(TcpClient creator, string lobbyCode)
@@ -402,9 +454,16 @@ namespace Proiect_SPRC
                     }
                 }
 
-            lock (_clients) { _clients.Remove(client); }
-            client.Close();
+                lock (_clients) { _clients.Remove(client); }
+                client.Close();
+            }
         }
+
+        private void StergeLobbyDinBD(string lobbyCode)
+        {
+
+        }
+
         public void ProcessServerCommand(string msg)
         {
             Log(ProcessCommand(msg));
@@ -446,7 +505,7 @@ namespace Proiect_SPRC
                     return HandleJoinLobby(sender, lobbyCode);
                 //UPDATE|lobbyCode|vectorTabla -> se actualizeaza starea jocului cu optiunile primite
                 case "UPDATE":
-                    string stareTabla = ValidareMutare(lobbyCode, parts[2]);
+                    string stareTabla = ValidareMeci(lobbyCode, parts[2]);
                     if (stareTabla != "")
                     {
                         BroadcastToLobby(lobbyCode, $"UPDATE_SUCCESS|{stareTabla}");
@@ -515,96 +574,20 @@ namespace Proiect_SPRC
                 }
             }
         }
-        public static int[,] ConvertesteInMatrice(string vectorString)
-        {
-            int[,] matrice = new int[8, 8];
-            string[] valori = vectorString.Split(','); // Sau orice separator folosești
-
-            for (int i = 0; i < 64; i++)
-            {
-                matrice[i / 8, i % 8] = int.Parse(valori[i]);
-            }
-            return matrice;
-        }
-        public static bool ExecutaValidarePiesa(int startX, int startY, int stopX, int stopY, int[,] tabla)
-        {
-            int piesaId = tabla[startX, startY];
-            PiesaSah? piesa = null;
-
-            // Mapare ID la Clase (Exemplu: 1=Pion, 2=Cal, 3=Nebun, 4=Turn, 5=Regina, 6=Rege)
-            // piesaId pozitiv = Alb, piesaId negativ = Negru
-            switch (Math.Abs(piesaId))
-            {
-                case 1: piesa = new Pion(); break;
-                case 2: piesa = new Cal(); break;
-                case 3: piesa = new Nebun(); break;
-                case 4: piesa = new Turn(); break;
-                case 5: piesa = new Regina(); break;
-                case 6: piesa = new Rege(); break;
-            }
-
-            if (piesa == null) return false;
-
-            //obtinere culoare jucator
-            piesa.Culoare = piesaId > 0 ? "Alb" : "Negru";
-
-            // Verificăm dacă nu cumva jucătorul încearcă să-și mănânce propria piesă
-            if (tabla[stopX, stopY] != 0)
-            {
-                //verificarea randului de mutare
-                bool tintaEsteAlba = tabla[stopX, stopY] > 0;
-                if ((piesa.Culoare == "Alb" && tintaEsteAlba) || (piesa.Culoare == "Negru" && !tintaEsteAlba))
-                    return false;
-            }
-
-            return piesa.EsteMutareValida(startX, startY, stopX, stopY, tabla);
-        }
-        private string ValidareMutare(string lobbyCode, string stareNouaVector)
+        
+        
+        private string ValidareMeci(string lobbyCode, string stareNouaVector)
         {
             lock (_meciuriActive)
             {
                 var meci = _meciuriActive.FirstOrDefault(m => m.lobbyCode == lobbyCode);
                 if (meci == null) return "";
 
-                // 1. Transformăm string-ul/vectorul primit în matrice int[8,8]
-                int[,] tablaNoua = ConvertesteInMatrice(stareNouaVector);
-                int[,] tablaVeche = ConvertesteInMatrice(meci.StareTabla); // Presupunem că StareTabla reține ultima stare validă
+                // Serverul acționează ca Relay: Clientul a validat deja mutarea.
+                // Salvăm direct noua stare a tablei în memorie.
+                meci.StareTabla = stareNouaVector;
 
-                int startX = -1, startY = -1, stopX = -1, stopY = -1;
-
-                // 2. Detectăm ce piesă s-a mutat și unde (Detectare diferențe)
-                for (int i = 0; i < 8; i++)
-                {
-                    for (int j = 0; j < 8; j++)
-                    {
-                        if (tablaVeche[i, j] != 0 && tablaNoua[i, j] == 0)
-                        {
-                            startX = i; startY = j;
-                        }
-                        else if (tablaNoua[i, j] != tablaVeche[i, j])
-                        {
-                            stopX = i; stopY = j;
-                        }
-                    }
-                }
-
-                // Dacă nu s-a detectat o mutare clară, respingem
-                if (startX == -1 || stopX == -1) return meci.StareTabla;
-
-                // 3. Executăm validarea propriu-zisă
-                if (ExecutaValidarePiesa(startX, startY, stopX, stopY, tablaVeche))
-                {
-                    string culoareJucator = (tablaVeche[startX, startY] > 0) ? "Alb" : "Negru";
-                    if (meci.ArFiInSahDupaMutare(startX, startY, stopX, stopY, culoareJucator))
-                    {
-                        return ""; // Mutare invalidă: regele rămâne/intră în șah - String gol !TREBUIE VERIFICAT
-                    }
-
-                    // Dacă e validă, actualizăm starea meciului
-                    meci.StareTabla = stareNouaVector;
-                    return meci.StareTabla;
-                }
-
+                // Returnăm noua stare pentru a fi trimisă mai departe prin Broadcast (UPDATE_SUCCESS)
                 return meci.StareTabla;
             }
         }
@@ -669,49 +652,7 @@ namespace Proiect_SPRC
                 Log($"[SERVER] Eroare la trimiterea mesajului: {ex.Message}");
             }
         }
-        private void CurataBazaDeDateLaPornire()
-        {
-            try
-            {
-                using (var conn = new SQLiteConnection(_connectionString))
-                {
-                    conn.Open();
-                    // Șterge toate jocurile rămase blocate din sesiunile anterioare
-                    string sql = "DELETE FROM Lobby";
-                    using (var cmd = new SQLiteCommand(sql, conn))
-                    {
-                        cmd.ExecuteNonQuery();
-                    }
-                }
-                Log("[SERVER] Baza de date a fost curățată pentru o nouă sesiune.");
-            }
-            catch (Exception ex)
-            {
-                Log($"[EROARE INITIALIZARE DB]: {ex.Message}");
-            }
-        }
-        private void StergeLobbyDinBD(string lobbyCode)
-        {
-            try
-            {    
-                using (var conn = new SQLiteConnection(_connectionString))
-                {
-                    conn.Open();
-                    string sql = "DELETE FROM Lobby WHERE lobbyCode = @cod";
-
-                    using (var cmd = new SQLiteCommand(sql, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@cod", lobbyCode);
-                        cmd.ExecuteNonQuery();
-                    }
-                }
-                Log($"[SERVER] Baza de date a fost curățată pentru lobby-ul: {lobbyCode}");
-            }
-            catch (Exception ex)
-            {
-                Log($"[EROARE SQL Ștergere Lobby]: {ex.Message}");
-            }
-        }
+        
         private string GenerareCod(int nr)
         {
             string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
