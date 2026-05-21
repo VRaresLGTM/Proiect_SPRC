@@ -535,8 +535,9 @@ namespace Proiect_SPRC
                     return "";
                 //CHAT_PRIVATE|lobbyCode|mesaj -> se transmite mesajul primit doar adversarului la jocul cu codul primit
                 case "CHAT_PRIVATE":
-                    if(parts.Length < 3) return "ERR|Mesaj Privat Gol";
-                    BroadcastChat(lobbyCode, parts[2], true, sender);
+                    if(parts.Length < 4) return "ERR|Mesaj Privat Gol";
+                    string emitatorsimesajprivat = parts[2] + ": " + parts[3];
+                    BroadcastChat(lobbyCode, emitatorsimesajprivat, true, sender);
                     return "";
                 case "TEST":
                     return $"ACK|Test primit";
