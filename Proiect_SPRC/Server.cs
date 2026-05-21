@@ -533,7 +533,7 @@ namespace Proiect_SPRC
                     {
                         BroadcastToLobby(lobbyCode, $"UPDATE_SUCCESS|{stareTabla}");
                         // Am sters return ACK pentru a preveni lipirea pachetelor TCP!
-                        break;
+                        return "";
                     }
                     return $"ERR|Mutare invalida conform regulilor";
                 //CHAT|lobbyCode|mesaj -> se transmite mesajul primit tuturor participantilor la jocul cu codul primit
