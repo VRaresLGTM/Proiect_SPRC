@@ -93,7 +93,7 @@ namespace Proiect_SPRC
                 }
             }
         }
-        private string DeleteLobbyDinDB(string lobbyCode)
+        private string StergeLobbyDinBD(string lobbyCode)
         {
             try
             {
@@ -459,11 +459,6 @@ namespace Proiect_SPRC
             }
         }
 
-        private void StergeLobbyDinBD(string lobbyCode)
-        {
-
-        }
-
         public void ProcessServerCommand(string msg)
         {
             Log(ProcessCommand(msg));
@@ -629,7 +624,6 @@ namespace Proiect_SPRC
                 }
                 _clients.Clear();
             }
-            _server?.Stop();
             OnServerStopped?.Invoke();
             Log("[SERVER] Server-ul s-a oprit complet.");
         }
@@ -653,19 +647,7 @@ namespace Proiect_SPRC
             }
         }
         
-        private string GenerareCod(int nr)
-        {
-            string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            Random rnd = new Random();
-
-            string cod = "";
-
-            for (int i = 0; i < nr-1; i++)
-            {
-                cod += chars[rnd.Next(chars.Length)];
-            }
-            return cod;
-        }
+        
         private void Log(string message)
         {
             OnLogReceived?.Invoke(message);
