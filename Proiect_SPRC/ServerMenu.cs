@@ -52,8 +52,8 @@ namespace Proiect_SPRC
             if (e.KeyChar == '\r')
             {
                 gameServer.ProcessServerCommand(textBoxCommand.Text);
+                textBoxCommand.Text = "";
             }
-            textBoxCommand.Text = "";
         }
 
         private void textBoxCommand_TextChanged(object sender, EventArgs e)

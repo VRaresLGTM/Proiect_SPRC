@@ -533,7 +533,7 @@ namespace Proiect_SPRC
                     string emitatorsimesaj = parts[2]+": " + parts[3];
                     BroadcastChat(lobbyCode, emitatorsimesaj, false, sender);
                     return emitatorsimesaj;
-                //CHAT_PRIVATE|lobbyCode|mesaj -> se transmite mesajul primit doar adversarului la jocul cu codul primit
+                //CHAT_PRIVATE|lobbyCode|emitator|mesaj -> se transmite mesajul primit doar adversarului la jocul cu codul primit
                 case "CHAT_PRIVATE":
                     if(parts.Length < 4) return "ERR|Mesaj Privat Gol";
                     string emitatorsimesajprivat = parts[2] + ": " + parts[3];
