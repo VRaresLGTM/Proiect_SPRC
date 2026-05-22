@@ -157,7 +157,6 @@
             jurnalTextBox.Size = new Size(542, 345);
             jurnalTextBox.TabIndex = 3;
             jurnalTextBox.Text = "";
-            jurnalTextBox.TextChanged += jurnalTextBox_TextChanged;
             // 
             // textBoxCommand
             // 
