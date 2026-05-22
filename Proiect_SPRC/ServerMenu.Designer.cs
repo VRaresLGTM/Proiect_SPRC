@@ -36,9 +36,6 @@
             labelJurnalServer = new Label();
             statusStrip = new StatusStrip();
             labelServerStatus = new ToolStripStatusLabel();
-            labelProgress = new ToolStripStatusLabel();
-            toolStripProgressBar1 = new ToolStripProgressBar();
-            labelSeparator = new ToolStripStatusLabel();
             jurnalTextBox = new RichTextBox();
             textBoxCommand = new TextBox();
             labelCommand = new Label();
@@ -112,7 +109,7 @@
             // 
             // statusStrip
             // 
-            statusStrip.Items.AddRange(new ToolStripItem[] { labelServerStatus, labelProgress, toolStripProgressBar1, labelSeparator });
+            statusStrip.Items.AddRange(new ToolStripItem[] { labelServerStatus });
             statusStrip.Location = new Point(0, 413);
             statusStrip.Name = "statusStrip";
             statusStrip.Size = new Size(568, 24);
@@ -126,25 +123,6 @@
             labelServerStatus.Name = "labelServerStatus";
             labelServerStatus.Size = new Size(108, 19);
             labelServerStatus.Text = "Status Server: OFF ";
-            // 
-            // labelProgress
-            // 
-            labelProgress.Name = "labelProgress";
-            labelProgress.Size = new Size(94, 19);
-            labelProgress.Text = "Progres Pornire: ";
-            // 
-            // toolStripProgressBar1
-            // 
-            toolStripProgressBar1.Name = "toolStripProgressBar1";
-            toolStripProgressBar1.Size = new Size(100, 18);
-            // 
-            // labelSeparator
-            // 
-            labelSeparator.BorderSides = ToolStripStatusLabelBorderSides.Left;
-            labelSeparator.BorderStyle = Border3DStyle.Etched;
-            labelSeparator.Margin = new Padding(5, 3, 0, 2);
-            labelSeparator.Name = "labelSeparator";
-            labelSeparator.Size = new Size(4, 19);
             // 
             // jurnalTextBox
             // 
@@ -235,9 +213,6 @@
         private RichTextBox jurnalTextBox;
         private TextBox textBoxCommand;
         private ToolStripStatusLabel labelServerStatus;
-        private ToolStripStatusLabel labelProgress;
-        private ToolStripProgressBar toolStripProgressBar1;
-        private ToolStripStatusLabel labelSeparator;
         private Label labelJurnalServer;
         private Label labelSpace;
         private Button buttonSendCommand;
