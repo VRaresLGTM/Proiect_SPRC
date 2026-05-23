@@ -699,7 +699,7 @@ namespace Proiect_SPRC
                     // 4. Curățăm baza de date SQLite pentru acest cod ca să poată fi refolosit
                     StergeLobbyDinBD(lobbyCode);
 
-                    Log($"[SERVER] Meciul {lobbyCode} a fost oprit cu succes. Serverul rulează în continuare.");
+                    Log($"[SERVER] Meciul {lobbyCode} a fost oprit cu succes.");
                 }
                 else
                 {
